@@ -1,0 +1,121 @@
+name: PowerShell Code Analysis
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "**/*.ps1"
+      - "**/*.psm1"
+      - "**/*.psd1"
+      - ".github/workflows/ps-analysis.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "**/*.ps1"
+      - "**/*.psm1"
+      - "**/*.psd1"
+      - ".github/workflows/ps-analysis.yml"
+  schedule:
+    - cron: "15 4 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  pssa:
+    name: PSScriptAnalyzer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Run PSScriptAnalyzer and generate SARIF
+        shell: pwsh
+        run: |
+          Import-Module PSScriptAnalyzer
+
+          $results = Invoke-ScriptAnalyzer `
+            -Path "${{ github.workspace }}\src" `
+            -Recurse `
+            -Settings "${{ github.workspace }}\PSScriptAnalyzerSettings.psd1" `
+            -Severity @('Error', 'Warning', 'Information')
+
+          # Build SARIF document
+          $rules = @{}
+          $sarifResults = foreach ($r in $results) {
+            if (-not $rules.ContainsKey($r.RuleName)) {
+              $rules[$r.RuleName] = $true
+            }
+            $level = switch ($r.Severity) {
+              'Error'       { 'error' }
+              'Warning'     { 'warning' }
+              'Information' { 'note' }
+              default       { 'warning' }
+            }
+            $relPath = $r.ScriptPath.Replace($env:GITHUB_WORKSPACE, '').TrimStart('\').Replace('\','/')
+            @{
+              ruleId  = $r.RuleName
+              level   = $level
+              message = @{ text = $r.Message }
+              locations = @(
+                @{
+                  physicalLocation = @{
+                    artifactLocation = @{
+                      uri       = $relPath
+                      uriBaseId = '%SRCROOT%'
+                    }
+                    region = @{
+                      startLine   = [int]$r.Line
+                      startColumn = [int]$r.Column
+                    }
+                  }
+                }
+              )
+            }
+          }
+
+          $ruleObjects = $rules.Keys | ForEach-Object {
+            @{
+              id = $_
+              shortDescription = @{ text = $_ }
+              helpUri = "https://github.com/PowerShell/PSScriptAnalyzer/blob/master/docs/Rules/$_.md"
+            }
+          }
+
+          $sarif = [ordered]@{
+            '$schema' = 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json'
+            version   = '2.1.0'
+            runs      = @(
+              @{
+                tool = @{
+                  driver = @{
+                    name            = 'PSScriptAnalyzer'
+                    version         = (Get-Module PSScriptAnalyzer).Version.ToString()
+                    informationUri  = 'https://github.com/PowerShell/PSScriptAnalyzer'
+                    rules           = @($ruleObjects)
+                  }
+                }
+                results = @($sarifResults)
+              }
+            )
+          }
+
+          $sarif | ConvertTo-Json -Depth 10 | Set-Content -Path psscriptanalyzer.sarif -Encoding UTF8
+
+          # Print summary
+          Write-Host "PSScriptAnalyzer found $($results.Count) issue(s)."
+          $results | Format-Table -AutoSize
+
+      - name: Upload SARIF results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: psscriptanalyzer.sarif
+          category: PSScriptAnalyzer
