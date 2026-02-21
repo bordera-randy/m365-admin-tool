@@ -1,4 +1,3 @@
-﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Microsoft 365 Admin Center Quick Launcher (Multi-Tenant) - WPF/XAML
@@ -8,7 +7,7 @@
       - Clear "Where to find" help + readable tooltips (no overlapping)
       - Search box in top-right
       - Section headers (Tenant Configuration, Admin Centers)
-      - Button grid that auto-fills space (dynamic WrapPanel)
+      - Button grid that auto-fills space (dynamic UniformGrid columns)
       - Iconography on buttons (Segoe MDL2 Assets glyphs)
       - Config persistence to %APPDATA%
       - Reset button clears fields + removes saved config
@@ -24,892 +23,760 @@
 [CmdletBinding()]
 param()
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-
-# ─── Assemblies ──────────────────────────────────────────────────────────────
+# ----------------------------
+# WPF Assemblies
+# ----------------------------
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
-Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Windows.Forms
 
-# ─── Constants ───────────────────────────────────────────────────────────────
-$script:AppName    = 'M365AdminTool'
-$script:ConfigDir  = Join-Path $env:APPDATA $script:AppName
-$script:ConfigFile = Join-Path $script:ConfigDir 'config.json'
-$script:Version    = '3.1'
+# ----------------------------
+# Persistence
+# ----------------------------
+$AppRoot    = Join-Path $env:APPDATA "PowerShell-Utility\M365Launcher"
+$ConfigPath = Join-Path $AppRoot "config.json"
 
-# ─── Admin Center Definitions ────────────────────────────────────────────────
-# Url placeholders: {TenantId} and {SPPrefix}
-$script:AdminCenters = @(
-    # Identity & Access
-    [PSCustomObject]@{
-        Name     = 'M365 Admin'
-        Url      = 'https://admin.microsoft.com'
-        Icon     = [char]0xE713
-        Category = 'Identity & Access'
-        Tooltip  = 'Microsoft 365 Admin Center  - Manage users, licenses, billing, and services'
-    }
-    [PSCustomObject]@{
-        Name     = 'Entra ID'
-        Url      = 'https://entra.microsoft.com'
-        Icon     = [char]0xE77B
-        Category = 'Identity & Access'
-        Tooltip  = 'Microsoft Entra ID (Azure Active Directory)  - Identity and access management'
-    }
-    [PSCustomObject]@{
-        Name     = 'Azure Portal'
-        Url      = 'https://portal.azure.com/{TenantId}'
-        Icon     = [char]0xE753
-        Category = 'Identity & Access'
-        Tooltip  = 'Azure Portal  - Manage Azure resources. Uses your Tenant ID to scope the session'
-    }
-    [PSCustomObject]@{
-        Name     = 'Lighthouse'
-        Url      = 'https://lighthouse.microsoft.com'
-        Icon     = [char]0xE753
-        Category = 'Identity & Access'
-        Tooltip  = 'Microsoft 365 Lighthouse  - Manage and secure multiple customer tenants'
-    }
-
-    # Messaging & Collaboration
-    [PSCustomObject]@{
-        Name     = 'Exchange'
-        Url      = 'https://admin.exchange.microsoft.com'
-        Icon     = [char]0xE715
-        Category = 'Messaging & Collaboration'
-        Tooltip  = 'Exchange Online Admin Center  - Manage mailboxes, mail flow, and transport rules'
-    }
-    [PSCustomObject]@{
-        Name     = 'Teams'
-        Url      = 'https://admin.teams.microsoft.com'
-        Icon     = [char]0xE716
-        Category = 'Messaging & Collaboration'
-        Tooltip  = 'Microsoft Teams Admin Center  - Manage Teams policies, channels, and calling'
-    }
-    [PSCustomObject]@{
-        Name     = 'SharePoint'
-        Url      = 'https://{SPPrefix}-admin.sharepoint.com'
-        Icon     = [char]0xE8A0
-        Category = 'Messaging & Collaboration'
-        Tooltip  = 'SharePoint Admin Center  - Manage SharePoint sites, storage, and settings. Requires SharePoint Prefix'
-    }
-    [PSCustomObject]@{
-        Name     = 'OneDrive'
-        Url      = 'https://{SPPrefix}-admin.sharepoint.com/_layouts/15/online/AdminHome.aspx#/oneDriveSettings'
-        Icon     = [char]0xE8B7
-        Category = 'Messaging & Collaboration'
-        Tooltip  = 'OneDrive Admin  - Manage OneDrive storage, sync, and data migration. Requires SharePoint Prefix'
-    }
-
-    # Security & Compliance
-    [PSCustomObject]@{
-        Name     = 'Security'
-        Url      = 'https://security.microsoft.com'
-        Icon     = [char]0xE72E
-        Category = 'Security & Compliance'
-        Tooltip  = 'Microsoft Defender Security Center  - Threat protection, incidents, and security analytics'
-    }
-    [PSCustomObject]@{
-        Name     = 'Compliance'
-        Url      = 'https://compliance.microsoft.com'
-        Icon     = [char]0xE9D9
-        Category = 'Security & Compliance'
-        Tooltip  = 'Microsoft Purview Compliance Portal  - Data governance, retention, and eDiscovery'
-    }
-    [PSCustomObject]@{
-        Name     = 'Purview'
-        Url      = 'https://purview.microsoft.com'
-        Icon     = [char]0xEA18
-        Category = 'Security & Compliance'
-        Tooltip  = 'Microsoft Purview  - Unified data governance, risk, and compliance platform'
-    }
-    [PSCustomObject]@{
-        Name     = 'Defender XDR'
-        Url      = 'https://security.microsoft.com'
-        Icon     = [char]0xE8D7
-        Category = 'Security & Compliance'
-        Tooltip  = 'Microsoft Defender XDR  - Extended detection and response across endpoints, identity, and cloud'
-    }
-
-    # Device Management
-    [PSCustomObject]@{
-        Name     = 'Intune'
-        Url      = 'https://intune.microsoft.com'
-        Icon     = [char]0xE8EA
-        Category = 'Device Management'
-        Tooltip  = 'Microsoft Intune  - Endpoint management, MDM, and app protection policies'
-    }
-    [PSCustomObject]@{
-        Name     = 'Endpoint Security'
-        Url      = 'https://intune.microsoft.com/#view/Microsoft_Intune_Workflows/SecurityManagementMenu/~/endpointSecuritySummary'
-        Icon     = [char]0xECE4
-        Category = 'Device Management'
-        Tooltip  = 'Endpoint Security  - Manage antivirus, firewall, disk encryption, and attack surface reduction policies'
-    }
-    [PSCustomObject]@{
-        Name     = 'Autopilot'
-        Url      = 'https://intune.microsoft.com/#view/Microsoft_Intune_Enrollment/AutopilotMenuBlade/~/overview'
-        Icon     = [char]0xE7C3
-        Category = 'Device Management'
-        Tooltip  = 'Windows Autopilot  - Automate device setup and deployment for new and reset devices'
-    }
-
-    # Apps & Services
-    [PSCustomObject]@{
-        Name     = 'Power Platform'
-        Url      = 'https://admin.powerplatform.microsoft.com'
-        Icon     = [char]0xE945
-        Category = 'Apps & Services'
-        Tooltip  = 'Power Platform Admin Center  - Manage Power Apps, Power Automate, Dataverse, and environments'
-    }
-    [PSCustomObject]@{
-        Name     = 'Power BI'
-        Url      = 'https://app.powerbi.com/admin-portal/tenantSettings'
-        Icon     = [char]0xE9F9
-        Category = 'Apps & Services'
-        Tooltip  = 'Power BI Admin Portal  - Manage tenant settings, capacities, and embed codes'
-    }
-    [PSCustomObject]@{
-        Name     = 'Viva Insights'
-        Url      = 'https://insights.viva.office.com'
-        Icon     = [char]0xECE7
-        Category = 'Apps & Services'
-        Tooltip  = 'Microsoft Viva Insights  - Workplace analytics and employee wellbeing data'
-    }
-    [PSCustomObject]@{
-        Name     = 'Viva Learning'
-        Url      = 'https://admin.microsoft.com/adminportal/home#/vivaLearning'
-        Icon     = [char]0xE82D
-        Category = 'Apps & Services'
-        Tooltip  = 'Viva Learning Admin  - Manage learning content sources and assignments'
-    }
-)
-
-# ─── Config Functions ─────────────────────────────────────────────────────────
-function Get-Config {
-    if (Test-Path $script:ConfigFile) {
-        try {
-            return Get-Content -Path $script:ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
-        } catch {
-            Write-Warning "Could not read config: $($_.Exception.Message)"
-            return $null
-        }
-    }
-    return $null
+function Ensure-AppRoot {
+    if (-not (Test-Path $AppRoot)) { New-Item -Path $AppRoot -ItemType Directory -Force | Out-Null }
 }
 
-function Save-Config {
-    param(
-        [string]$TenantId,
-        [string]$SPPrefix,
-        [bool]$CloseToTray
-    )
-    if (-not (Test-Path $script:ConfigDir)) {
-        $null = New-Item -ItemType Directory -Path $script:ConfigDir -Force
+function Load-Config {
+    Ensure-AppRoot
+    if (Test-Path $ConfigPath) {
+        try { return (Get-Content $ConfigPath -Raw | ConvertFrom-Json) }
+        catch { return [pscustomobject]@{} }
     }
-    [PSCustomObject]@{
-        TenantId    = $TenantId
-        SPPrefix    = $SPPrefix
-        CloseToTray = $CloseToTray
-    } | ConvertTo-Json | Set-Content -Path $script:ConfigFile -Encoding UTF8
+    [pscustomobject]@{}
+}
+
+function Save-Config([object]$cfg) {
+    Ensure-AppRoot
+    $cfg | ConvertTo-Json -Depth 6 | Set-Content -Path $ConfigPath -Encoding UTF8
 }
 
 function Remove-Config {
-    [CmdletBinding(SupportsShouldProcess)]
-    param()
-    if (Test-Path $script:ConfigFile) {
-        if ($PSCmdlet.ShouldProcess($script:ConfigFile, 'Remove configuration file')) {
-            Remove-Item -Path $script:ConfigFile -Force
-        }
+    if (Test-Path $ConfigPath) {
+        try { Remove-Item $ConfigPath -Force -ErrorAction Stop | Out-Null } catch {}
     }
 }
 
-# ─── URL Builder ─────────────────────────────────────────────────────────────
-function Build-Url {
+# ----------------------------
+# Helpers
+# ----------------------------
+function Test-TenantId {
+    param([string]$TenantId)
+    $guid = [Guid]::Empty
+    [Guid]::TryParse((Nz $TenantId "").Trim(), [ref]$guid)
+}
+
+function Normalize-TenantName {
+    param([string]$TenantName)
+    if ([string]::IsNullOrWhiteSpace($TenantName)) { return "" }
+    $t = $TenantName.Trim()
+
+    if ($t -match '^(?<name>[^.]+)\.onmicrosoft\.com$') { return $Matches['name'] }
+    if ($t -match '^(?<name>[^.]+)-admin\.sharepoint\.com$') { return $Matches['name'] }
+    $t
+}
+
+function Nz {
     param(
-        [string]$UrlTemplate,
-        [string]$TenantId,
-        [string]$SPPrefix
+        $Value,
+        [string]$Default = ""
     )
-    $url = $UrlTemplate
-    if ($TenantId) {
-        $url = $url -replace '\{TenantId\}', [uri]::EscapeDataString($TenantId)
-    } else {
-        $url = $url -replace '/\{TenantId\}', ''
-        $url = $url -replace '\{TenantId\}', ''
-    }
-    $url = $url -replace '\{SPPrefix\}', $SPPrefix
-    return $url
+    if ($null -ne $Value -and $Value -ne [DBNull]::Value) { return $Value }
+    return $Default
 }
 
-function Open-AdminUrl {
-    param([string]$Url, [string]$Name, [string]$SPPrefix)
-
-    if ($Url -match '\{SPPrefix\}' -and [string]::IsNullOrWhiteSpace($SPPrefix)) {
-        [System.Windows.MessageBox]::Show(
-            "The '$Name' admin center requires a SharePoint Tenant Prefix.`n`nPlease enter your SharePoint prefix in the Tenant Configuration section above and click Save.",
-            'SharePoint Prefix Required',
-            [System.Windows.MessageBoxButton]::OK,
-            [System.Windows.MessageBoxImage]::Warning
-        ) | Out-Null
-        return
-    }
+function Open-Url {
+    param([Parameter(Mandatory)][string]$Url)
     try {
-        Start-Process $Url
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = $Url
+        $psi.UseShellExecute = $true
+        [System.Diagnostics.Process]::Start($psi) | Out-Null
+        $true
     } catch {
-        [System.Windows.MessageBox]::Show(
-            "Failed to open URL:`n$Url`n`n$($_.Exception.Message)",
-            'Error',
-            [System.Windows.MessageBoxButton]::OK,
-            [System.Windows.MessageBoxImage]::Error
-        ) | Out-Null
+        $false
     }
 }
 
-# ─── Tray Icon ────────────────────────────────────────────────────────────────
-function New-TrayIcon {
-    [CmdletBinding(SupportsShouldProcess)]
-    param()
-
-    if (-not $PSCmdlet.ShouldProcess('system tray', 'Add notification icon')) { return $null }
-
-    # Create a simple programmatic icon (blue circle with white "M")
-    $bitmap = [System.Drawing.Bitmap]::new(32, 32)
-    $g = [System.Drawing.Graphics]::FromImage($bitmap)
-    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $g.Clear([System.Drawing.Color]::Transparent)
-    $brush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(0, 120, 212))
-    $g.FillEllipse($brush, 1, 1, 29, 29)
-    $font = [System.Drawing.Font]::new('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
-    $textBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::White)
-    $sf = [System.Drawing.StringFormat]::new()
-    $sf.Alignment = [System.Drawing.StringAlignment]::Center
-    $sf.LineAlignment = [System.Drawing.StringAlignment]::Center
-    $g.DrawString('M', $font, $textBrush, [System.Drawing.RectangleF]::new(0, 0, 32, 32), $sf)
-    $g.Dispose()
-    $font.Dispose()
-    $brush.Dispose()
-    $textBrush.Dispose()
-    $sf.Dispose()
-
-    $hIcon = $bitmap.GetHicon()
-    $bitmap.Dispose()
-    $icon = [System.Drawing.Icon]::FromHandle($hIcon)
-
-    $trayIcon = [System.Windows.Forms.NotifyIcon]::new()
-    $trayIcon.Icon = $icon
-    $trayIcon.Text = "M365 Admin Tool v$($script:Version)"
-    $trayIcon.Visible = $true
-
-    $contextMenu = [System.Windows.Forms.ContextMenuStrip]::new()
-    $showItem    = $contextMenu.Items.Add('Show Window')
-    $exitItem    = $contextMenu.Items.Add('Exit')
-
-    $showItem.add_Click({
-        $window.Show()
-        $window.WindowState = [System.Windows.WindowState]::Normal
-        $window.Activate()
-    })
-
-    $exitItem.add_Click({
-        $trayIcon.Visible = $false
-        $trayIcon.Dispose()
-        $icon.Dispose()
-        $window.Tag = 'ForceClose'
-        $window.Close()
-    })
-
-    $trayIcon.ContextMenuStrip = $contextMenu
-
-    $trayIcon.add_DoubleClick({
-        $window.Show()
-        $window.WindowState = [System.Windows.WindowState]::Normal
-        $window.Activate()
-    })
-
-    return $trayIcon
+function Get-SharePointAdminUrl {
+    param([Parameter(Mandatory)][string]$TenantName)
+    "https://$TenantName-admin.sharepoint.com"
 }
 
-# ─── XAML ─────────────────────────────────────────────────────────────────────
-[xml]$XAML = @'
-<Window
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Microsoft 365 Admin Tool"
-    Width="980" Height="700"
-    MinWidth="660" MinHeight="500"
-    WindowStartupLocation="CenterScreen"
-    UseLayoutRounding="True">
+function Get-EntraUrl {
+    param([Parameter(Mandatory)][string]$TenantId)
+    "https://entra.microsoft.com/#/tenant/$TenantId"
+}
 
+# ----------------------------
+# Admin Centers
+# ----------------------------
+function Get-AdminCenters {
+    @(
+        # Core
+        @{ Name="Microsoft 365 Admin Center"; Category="Core"; Color="#E67E22"; Notes="Primary admin portal"; StaticUrl="https://admin.microsoft.com"; Keywords="m365 admin center office365"; Icon="E713" } # GlobalNavButton
+        @{ Name="Users"; Category="Core"; Color="#6B8E23"; Notes="Users blade"; StaticUrl="https://admin.microsoft.com/#/users"; Keywords="users accounts licensing"; Icon="E77B" } # Contact
+        @{ Name="Licenses"; Category="Core"; Color="#2ECC71"; Notes="Licensing"; StaticUrl="https://admin.microsoft.com/#/licenses"; Keywords="licenses subscriptions"; Icon="E8D7" } # Permissions
+        @{ Name="Billing"; Category="Core"; Color="#16A085"; Notes="Billing"; StaticUrl="https://admin.microsoft.com/#/billingaccounts"; Keywords="billing invoices payments"; Icon="E8C7" } # Money
+        @{ Name="Domains"; Category="Core"; Color="#34495E"; Notes="Domains"; StaticUrl="https://admin.microsoft.com/#/domains"; Keywords="domains dns"; Icon="E774" } # World
+
+        # Messaging
+        @{ Name="Exchange Admin Center"; Category="Messaging"; Color="#0078D7"; Notes="Exchange Online"; StaticUrl="https://admin.exchange.microsoft.com"; Keywords="exchange mail exo"; Icon="E715" } # Mail
+        @{ Name="Teams Admin Center"; Category="Messaging"; Color="#5695D2"; Notes="Teams"; StaticUrl="https://admin.teams.microsoft.com"; Keywords="teams voice calling"; Icon="E902" } # Video
+
+        # Collaboration
+        @{
+            Name="SharePoint Admin Center"; Category="Collaboration"; Color="#00B0F0"; Notes="SharePoint admin"; Keywords="sharepoint sp sites"; Icon="E8A7" # Library
+            UrlBuilder = {
+                param($state)
+                if ([string]::IsNullOrWhiteSpace($state.TenantName)) { "https://admin.microsoft.com/sharepoint" }
+                else { Get-SharePointAdminUrl -TenantName $state.TenantName }
+            }
+        }
+        @{
+            Name="OneDrive Admin"; Category="Collaboration"; Color="#00CC99"; Notes="OneDrive settings"; Keywords="onedrive sync sharing"; Icon="E753" # Cloud
+            UrlBuilder = {
+                param($state)
+                if ([string]::IsNullOrWhiteSpace($state.TenantName)) { "https://admin.microsoft.com/#/onedrive" }
+                else { Get-SharePointAdminUrl -TenantName $state.TenantName }
+            }
+        }
+
+        # Identity / Azure
+        @{
+            Name="Entra ID Admin Center"; Category="Identity"; Color="#9B59B6"; Notes="Entra ID"; Keywords="entra aad azuread identity conditional access"; Icon="E72E" # Shield
+            UrlBuilder = {
+                param($state)
+                if (Test-TenantId $state.TenantId) { Get-EntraUrl -TenantId $state.TenantId }
+                else { "https://entra.microsoft.com" }
+            }
+        }
+        @{ Name="Azure Portal"; Category="Identity"; Color="#2980B9"; Notes="Azure"; StaticUrl="https://portal.azure.com"; Keywords="azure portal subscriptions"; Icon="E7AD" } # AzureLogo (approx)
+
+        # Security & Compliance
+        @{ Name="Microsoft Defender Portal"; Category="Security"; Color="#C0392B"; Notes="Defender"; StaticUrl="https://security.microsoft.com"; Keywords="defender security mde"; Icon="EA18" } # SecurityGroup
+        @{ Name="Microsoft Purview Compliance"; Category="Security"; Color="#7848A9"; Notes="Purview"; StaticUrl="https://compliance.microsoft.com"; Keywords="purview compliance ediscovery retention"; Icon="E8EF" } # ComplianceAudit
+        @{ Name="Microsoft 365 Defender (legacy)"; Category="Security"; Color="#8E44AD"; Notes="Legacy"; StaticUrl="https://security.microsoft.com/homepage"; Keywords="m365 defender portal"; Icon="EA18" }
+
+        # Devices
+        @{ Name="Intune / Endpoint Manager"; Category="Devices"; Color="#1ABC9C"; Notes="Endpoint"; StaticUrl="https://endpoint.microsoft.com"; Keywords="intune endpoint manager mdm"; Icon="E7F8" } # DeviceLaptop
+
+        # Power Platform
+        @{ Name="Power Platform Admin"; Category="Power"; Color="#2D89EF"; Notes="Power Platform"; StaticUrl="https://admin.powerplatform.microsoft.com"; Keywords="power platform"; Icon="E7C1" } # Puzzle
+        @{ Name="Power BI Admin"; Category="Power"; Color="#F1C40F"; Notes="Power BI"; StaticUrl="https://app.powerbi.com/admin-portal"; Keywords="powerbi bi"; Icon="E9D2" } # BarChart
+    )
+}
+
+# ----------------------------
+# State
+# ----------------------------
+$cfg = Load-Config
+$state = [pscustomobject]@{
+    TenantId   = ($cfg.tenantId   | ForEach-Object { "$_" })
+    TenantName = (Normalize-TenantName ($cfg.tenantName | ForEach-Object { "$_" }))
+}
+
+# ----------------------------
+# XAML UI (no overlapping text; search in top-right; section headers)
+# ----------------------------
+$xaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Microsoft 365 Admin Centers (Multi-Tenant)"
+        Height="820" Width="1040"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        Background="#F0F5FA">
     <Window.Resources>
-
-        <!-- Admin center button style with rounded corners + hover triggers -->
-        <Style x:Key="AdminButtonStyle" TargetType="Button">
-            <Setter Property="Background"       Value="White"/>
-            <Setter Property="BorderBrush"      Value="#E0E0E0"/>
-            <Setter Property="BorderThickness"  Value="1"/>
-            <Setter Property="Margin"           Value="4"/>
-            <Setter Property="Padding"          Value="0"/>
-            <Setter Property="Cursor"           Value="Hand"/>
-            <Setter Property="Width"            Value="130"/>
-            <Setter Property="Height"           Value="80"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <!-- 3D-ish tile button style -->
+        <Style x:Key="TileButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border
-                            x:Name="Bd"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="6"
-                            SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
+                        <Grid>
+                            <Border x:Name="Card"
+                                    CornerRadius="12"
+                                    Background="{TemplateBinding Background}"
+                                    SnapsToDevicePixels="True">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000"
+                                                      BlurRadius="14"
+                                                      ShadowDepth="4"
+                                                      Opacity="0.28"/>
+                                </Border.Effect>
+
+                                <!-- "Gloss" highlight -->
+                                <Grid>
+                                    <Border CornerRadius="12" Background="#000000" Opacity="0.08"/>
+                                    <Border CornerRadius="12" Margin="1">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#FFFFFF" Offset="0" />
+                                                <GradientStop Color="#FFFFFF" Offset="0.35" />
+                                                <GradientStop Color="#FFFFFF" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <Border.OpacityMask>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#FF000000" Offset="0" />
+                                                <GradientStop Color="#26000000" Offset="0.35" />
+                                                <GradientStop Color="#00000000" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Border.OpacityMask>
+                                    </Border>
+
+                                    <!-- Content -->
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      Margin="18,10"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background"   Value="#E8F0FE"/>
-                                <Setter TargetName="Bd" Property="BorderBrush"  Value="#0078D4"/>
+                                <Setter TargetName="Card" Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                                <Setter TargetName="Card" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <TranslateTransform Y="-1"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="Card" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#000000" BlurRadius="18" ShadowDepth="6" Opacity="0.34"/>
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
+
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bd" Property="Background"   Value="#D0E4FC"/>
+                                <Setter TargetName="Card" Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                                <Setter TargetName="Card" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <TranslateTransform Y="1"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="Card" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#000000" BlurRadius="10" ShadowDepth="2" Opacity="0.22"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Card" Property="Opacity" Value="0.55"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <!-- Action button style (Save / Reset in header) -->
-        <Style x:Key="ActionButtonStyle" TargetType="Button">
-            <Setter Property="Background"       Value="White"/>
-            <Setter Property="Foreground"       Value="#0078D4"/>
-            <Setter Property="BorderBrush"      Value="White"/>
-            <Setter Property="BorderThickness"  Value="1"/>
-            <Setter Property="Padding"          Value="12,0"/>
-            <Setter Property="Height"           Value="32"/>
-            <Setter Property="Cursor"           Value="Hand"/>
-            <Setter Property="FontFamily"       Value="Segoe UI"/>
-            <Setter Property="FontSize"         Value="12"/>
-            <Setter Property="FontWeight"       Value="SemiBold"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border
-                            x:Name="Bd"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="4"
-                            Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#E8F0FE"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#D0E4FC"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Input (TextBox) style with rounded border + focus highlight -->
-        <Style x:Key="InputStyle" TargetType="TextBox">
-            <Setter Property="Background"              Value="White"/>
-            <Setter Property="BorderBrush"             Value="#CCCCCC"/>
-            <Setter Property="BorderThickness"         Value="1"/>
-            <Setter Property="Padding"                 Value="8,0"/>
-            <Setter Property="FontSize"                Value="13"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border
-                            x:Name="Bd"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="4">
-                            <ScrollViewer x:Name="PART_ContentHost"
-                                          Padding="{TemplateBinding Padding}"
-                                          VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#0078D4"/>
-                                <Setter TargetName="Bd" Property="BorderThickness" Value="2"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
     </Window.Resources>
 
-    <DockPanel>
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-        <!-- ═══ HEADER / TENANT CONFIGURATION ════════════════════════════════ -->
-        <Border DockPanel.Dock="Top" Background="#0078D4" Padding="16,12,16,14">
+        <!-- Tenant Configuration -->
+        <Border Grid.Row="0" Background="#FAFAFC" CornerRadius="12" Padding="14" BorderBrush="#E5E7EB" BorderThickness="1">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>  <!-- header line -->
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="Auto"/>  <!-- tenant id line -->
+                    <RowDefinition Height="Auto"/>  <!-- tenant id help line -->
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="Auto"/>  <!-- tenant name line -->
+                    <RowDefinition Height="Auto"/>  <!-- tenant name help line -->
+                </Grid.RowDefinitions>
+
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="230"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="92"/>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="44"/>
+                    <ColumnDefinition Width="210"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Left: app title + tenant config -->
-                <StackPanel Grid.Column="0">
+                <!-- Header row: section header + search right -->
+                <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Vertical">
+                    <TextBlock Text="Tenant Configuration" FontSize="12" FontWeight="Bold" Foreground="#6B7280"/>
+                    <TextBlock Text="Microsoft 365 Administration Dashboard" FontSize="20" FontWeight="Bold" Foreground="#111827"/>
+                </StackPanel>
 
-                    <!-- Title row -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="&#xE713;"
-                                   FontFamily="Segoe MDL2 Assets"
-                                   FontSize="22"
-                                   Foreground="White"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,8,0"/>
-                        <TextBlock Text="Microsoft 365 Admin Tool"
-                                   FontSize="18"
-                                   FontWeight="SemiBold"
-                                   Foreground="White"
-                                   VerticalAlignment="Center"/>
+                <DockPanel Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="3" LastChildFill="True" Margin="8,0,0,0">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Vertical" HorizontalAlignment="Right">
+                        <TextBlock Text="Search" FontSize="12" FontWeight="Bold" Foreground="#6B7280" HorizontalAlignment="Right"/>
+                        <TextBox x:Name="txtSearch" Width="340" Height="28" Margin="0,4,0,0"/>
                     </StackPanel>
+                </DockPanel>
 
-                    <!-- Section label -->
-                    <TextBlock Text="TENANT CONFIGURATION"
-                               FontSize="10"
-                               FontWeight="Bold"
-                               Foreground="#B3D7F5"
-                               Margin="0,0,0,8"/>
+                <!-- Reset button and Active Tenant badge -->
+                <Button x:Name="btnReset" Grid.Row="0" Grid.Column="2" Content="Reset"
+                        Margin="8,4,0,0" Padding="12,7"
+                        Background="#777777" Foreground="White" BorderThickness="0"
+                        FontWeight="Bold" HorizontalAlignment="Stretch" VerticalAlignment="Top"/>
 
-                    <!-- Config fields row -->
-                    <WrapPanel Orientation="Horizontal">
+                <Border Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="3" Background="#E8F0FE" CornerRadius="10" Padding="10,8" Margin="8,0,0,0" VerticalAlignment="Bottom">
+                    <StackPanel>
+                        <TextBlock Text="Active Tenant" FontSize="12" FontWeight="Bold" Foreground="#193C78"/>
+                        <TextBlock x:Name="lblCurrentTenant" Text="(not set)" FontWeight="Bold" Foreground="#193C78" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Border>
 
-                        <!-- Directory (Tenant) ID -->
-                        <StackPanel Margin="0,0,12,0" Width="300">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Text="Directory (Tenant) ID"
-                                           Foreground="#E0F0FF"
-                                           FontSize="12"
-                                           VerticalAlignment="Center"/>
-                                <Button x:Name="TenantIdHelpBtn"
-                                        Content="&#xE9CE;"
-                                        FontFamily="Segoe MDL2 Assets"
-                                        FontSize="12"
-                                        Foreground="#B3D7F5"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Cursor="Hand"
-                                        Padding="4,0,0,0"
-                                        VerticalAlignment="Center"
-                                        FocusVisualStyle="{x:Null}"
-                                        ToolTip="Click for help finding your Tenant ID"/>
-                            </StackPanel>
-                            <TextBox x:Name="TenantIdBox"
-                                     Style="{StaticResource InputStyle}"
-                                     Height="32"
-                                     ToolTip="Enter your Azure AD / Entra Directory (Tenant) ID&#x0a;Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&#x0a;Find it in: Azure Portal &#x2192; Entra ID &#x2192; Overview"/>
-                        </StackPanel>
+                <!-- Tenant ID line -->
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Directory (Tenant) ID:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <TextBox x:Name="txtTenantId" Grid.Row="2" Grid.Column="1" Height="28" Margin="0,2,0,2"/>
 
-                        <!-- SharePoint Prefix -->
-                        <StackPanel Margin="0,0,16,0" Width="200">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Text="SharePoint Prefix"
-                                           Foreground="#E0F0FF"
-                                           FontSize="12"
-                                           VerticalAlignment="Center"/>
-                                <Button x:Name="SPPrefixHelpBtn"
-                                        Content="&#xE9CE;"
-                                        FontFamily="Segoe MDL2 Assets"
-                                        FontSize="12"
-                                        Foreground="#B3D7F5"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Cursor="Hand"
-                                        Padding="4,0,0,0"
-                                        VerticalAlignment="Center"
-                                        FocusVisualStyle="{x:Null}"
-                                        ToolTip="Click for help finding your SharePoint prefix"/>
-                            </StackPanel>
-                            <TextBox x:Name="SPPrefixBox"
-                                     Style="{StaticResource InputStyle}"
-                                     Height="32"
-                                     ToolTip="Enter the prefix of your SharePoint admin URL&#x0a;Example: if URL is https://contoso-admin.sharepoint.com, enter: contoso"/>
-                        </StackPanel>
+                <Button x:Name="btnCopyTenantId" Grid.Row="2" Grid.Column="2" Content="Copy" Margin="8,2,0,2" Padding="12,7" FontWeight="Bold"/>
+                <TextBlock Grid.Row="2" Grid.Column="3" Margin="10,7,0,0">
+                    <Hyperlink x:Name="lnkEntraOverview">Open Entra Overview</Hyperlink>
+                </TextBlock>
 
-                        <!-- Action buttons + checkbox -->
-                        <StackPanel Margin="0,20,0,0">
-                            <StackPanel Orientation="Horizontal">
-                                <Button x:Name="SaveConfigBtn"
-                                        Style="{StaticResource ActionButtonStyle}"
-                                        Margin="0,0,8,0"
-                                        ToolTip="Save tenant configuration to %APPDATA%\M365AdminTool\config.json">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE74E;"
-                                                   FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="13"
-                                                   Foreground="#0078D4"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,6,0"/>
-                                        <TextBlock Text="Save"
-                                                   FontFamily="Segoe UI"
-                                                   FontSize="12"
-                                                   Foreground="#0078D4"
-                                                   VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button x:Name="ResetConfigBtn"
-                                        Style="{StaticResource ActionButtonStyle}"
-                                        ToolTip="Clear all fields and remove saved configuration">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE72C;"
-                                                   FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="13"
-                                                   Foreground="#C42B1C"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,6,0"/>
-                                        <TextBlock Text="Reset"
-                                                   FontFamily="Segoe UI"
-                                                   FontSize="12"
-                                                   Foreground="#C42B1C"
-                                                   VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
-                            <CheckBox x:Name="CloseToTrayCheck"
-                                      Content="Minimize to tray"
-                                      Foreground="#E0F0FF"
-                                      FontSize="11"
-                                      Margin="2,8,0,0"
-                                      ToolTip="When enabled, closing the window sends it to the system tray instead of exiting"/>
-                        </StackPanel>
+                <Button x:Name="btnTenantIdHelp" Grid.Row="2" Grid.Column="4" Content="?" Margin="8,2,0,2"
+                        Background="#3498DB" Foreground="White" BorderThickness="0" FontWeight="Bold"/>
 
-                    </WrapPanel>
-                </StackPanel>
+                <TextBlock x:Name="lblTenantIdValid" Grid.Row="2" Grid.Column="5" Margin="0,2,0,2"
+                           HorizontalAlignment="Right" VerticalAlignment="Center"
+                           FontWeight="Bold" Foreground="#6B7280" Text="Not set"/>
 
-                <!-- Right: Search -->
-                <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="16,0,0,0" Width="210">
-                    <TextBlock Text="SEARCH ADMIN CENTERS"
-                               FontSize="10"
-                               FontWeight="Bold"
-                               Foreground="#B3D7F5"
-                               Margin="0,0,0,8"/>
-                    <Grid>
-                        <TextBox x:Name="SearchBox"
-                                 Style="{StaticResource InputStyle}"
-                                 Height="32"
-                                 ToolTip="Filter admin center buttons by name or category"/>
-                        <TextBlock x:Name="SearchPlaceholder"
-                                   Text="&#xE711;  Search..."
-                                   FontFamily="Segoe MDL2 Assets, Segoe UI"
-                                   FontSize="13"
-                                   Foreground="#999999"
-                                   IsHitTestVisible="False"
-                                   VerticalAlignment="Center"
-                                   Margin="10,0,0,0"/>
-                    </Grid>
-                </StackPanel>
+                <!-- Tenant ID help -->
+                <TextBlock Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="5" Foreground="#6B7280" FontSize="12"
+                           Text="Located in Entra ID → Overview → Directory (tenant) ID" TextWrapping="Wrap"/>
+
+                <!-- Tenant Name line -->
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="SharePoint Tenant Prefix:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <TextBox x:Name="txtTenantName" Grid.Row="5" Grid.Column="1" Height="28" Margin="0,2,0,2"/>
+
+                <Button x:Name="btnTenantNameHelp" Grid.Row="5" Grid.Column="2" Content="?" Margin="8,2,0,2"
+                        Background="#3498DB" Foreground="White" BorderThickness="0" FontWeight="Bold"/>
+
+                <TextBlock Grid.Row="5" Grid.Column="3" Grid.ColumnSpan="2" Margin="10,2,0,0" Foreground="#6B7280" FontSize="12" TextWrapping="Wrap">
+                    Example: contoso (or contoso.onmicrosoft.com)
+                </TextBlock>
+
+                <Button x:Name="btnSetTenant" Grid.Row="5" Grid.Column="5" Content="Set Tenant"
+                        Margin="8,2,0,2" Padding="12,7"
+                        Background="#219653" Foreground="White" BorderThickness="0"
+                        FontWeight="Bold"/>
+
+                <!-- Tenant Name help -->
+                <TextBlock Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="4" Foreground="#6B7280" FontSize="12"
+                           Text="Located in Microsoft 365 Admin Center → Settings → Domains → Initial domain" TextWrapping="Wrap"/>
+
+                <TextBlock Grid.Row="6" Grid.Column="5" HorizontalAlignment="Right" Margin="0,0,0,0">
+                    <Hyperlink x:Name="lnkDomains">Open Domains Page</Hyperlink>
+                </TextBlock>
 
             </Grid>
         </Border>
 
-        <!-- ═══ STATUS BAR ════════════════════════════════════════════════════ -->
-        <StatusBar DockPanel.Dock="Bottom"
-                   Background="White"
-                   BorderBrush="#E0E0E0"
-                   BorderThickness="0,1,0,0">
-            <StatusBarItem>
-                <TextBlock x:Name="StatusText"
-                           FontSize="11"
-                           Foreground="#555555"/>
-            </StatusBarItem>
-            <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Text="v3.1  |  Randy Bordeaux  |  github.com/bordera-randy"
-                           FontSize="10"
-                           Foreground="#AAAAAA"/>
-            </StatusBarItem>
-        </StatusBar>
+        <!-- Admin Centers -->
+        <Border Grid.Row="1" Background="#F0F5FA" CornerRadius="12" Padding="10" Margin="0,12,0,12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-        <!-- ═══ ADMIN CENTERS (scrollable) ════════════════════════════════════ -->
-        <ScrollViewer VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled"
-                      Background="#F3F3F3">
-            <StackPanel x:Name="AdminCentersPanel"
-                        Margin="8,4,8,8"/>
-        </ScrollViewer>
+                <StackPanel Grid.Row="0" Orientation="Vertical" Margin="4,0,4,8">
+                    <TextBlock Text="Admin Centers" FontSize="12" FontWeight="Bold" Foreground="#6B7280"/>
+                    <TextBlock Text="Click a tile to open the portal in your default browser" FontSize="13" Foreground="#374151"/>
+                </StackPanel>
 
-    </DockPanel>
+                <ScrollViewer Grid.Row="1" x:Name="svButtons" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <UniformGrid x:Name="ugButtons" Columns="4" Margin="2"/>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="#FAFAFC" CornerRadius="12" Padding="10" BorderBrush="#E5E7EB" BorderThickness="1">
+            <DockPanel>
+                <CheckBox x:Name="chkCloseToTray" Content="Close to tray" IsChecked="True" VerticalAlignment="Center"/>
+                <TextBlock x:Name="lblStatus" DockPanel.Dock="Left" Margin="16,0,0,0" VerticalAlignment="Center" Foreground="#4B5563" Text="Status: Ready"/>
+                <Button x:Name="btnExit" Content="Exit" DockPanel.Dock="Right" Width="90" FontWeight="Bold"/>
+            </DockPanel>
+        </Border>
+
+    </Grid>
 </Window>
-'@
+"@
 
-# ─── Load XAML Window ─────────────────────────────────────────────────────────
-try {
-    $reader = [System.Xml.XmlNodeReader]::new($XAML)
-    $window = [Windows.Markup.XamlReader]::Load($reader)
-} catch {
-    [System.Windows.MessageBox]::Show(
-        "Failed to load UI layout.`n`n$($_.Exception.Message)",
-        'M365 Admin Tool  - Fatal Error',
-        [System.Windows.MessageBoxButton]::OK,
-        [System.Windows.MessageBoxImage]::Error
-    ) | Out-Null
-    exit 1
+# Load XAML
+$reader = New-Object System.Xml.XmlNodeReader ([xml]$xaml)
+$window = [Windows.Markup.XamlReader]::Load($reader)
+
+# Named controls
+$txtTenantId       = $window.FindName("txtTenantId")
+$txtTenantName     = $window.FindName("txtTenantName")
+$txtSearch         = $window.FindName("txtSearch")
+$lblCurrentTenant  = $window.FindName("lblCurrentTenant")
+$lblTenantIdValid  = $window.FindName("lblTenantIdValid")
+$lblStatus         = $window.FindName("lblStatus")
+$btnCopyTenantId   = $window.FindName("btnCopyTenantId")
+$btnTenantIdHelp   = $window.FindName("btnTenantIdHelp")
+$btnTenantNameHelp = $window.FindName("btnTenantNameHelp")
+$btnSetTenant      = $window.FindName("btnSetTenant")
+$btnReset          = $window.FindName("btnReset")
+$btnExit           = $window.FindName("btnExit")
+$chkCloseToTray    = $window.FindName("chkCloseToTray")
+$lnkEntraOverview  = $window.FindName("lnkEntraOverview")
+$lnkDomains        = $window.FindName("lnkDomains")
+$svButtons         = $window.FindName("svButtons")
+$ugButtons         = $window.FindName("ugButtons")
+
+# Apply initial state
+$txtTenantId.Text   = (Nz $state.TenantId "")
+$txtTenantName.Text = (Nz $state.TenantName "")
+
+# ----------------------------
+# Tooltips (readable)
+# ----------------------------
+function New-ReadableToolTip {
+    param([string]$Text)
+    $tb = New-Object System.Windows.Controls.TextBlock
+    $tb.Text = $Text
+    $tb.TextWrapping = "Wrap"
+    $tb.MaxWidth = 420
+    $tb.Margin = "8"
+    $tb
 }
 
-# ─── Find Named Controls ──────────────────────────────────────────────────────
-$TenantIdBox       = $window.FindName('TenantIdBox')
-$SPPrefixBox       = $window.FindName('SPPrefixBox')
-$SaveConfigBtn     = $window.FindName('SaveConfigBtn')
-$ResetConfigBtn    = $window.FindName('ResetConfigBtn')
-$CloseToTrayCheck  = $window.FindName('CloseToTrayCheck')
-$SearchBox         = $window.FindName('SearchBox')
-$SearchPlaceholder = $window.FindName('SearchPlaceholder')
-$AdminCentersPanel = $window.FindName('AdminCentersPanel')
-$StatusText        = $window.FindName('StatusText')
-$TenantIdHelpBtn   = $window.FindName('TenantIdHelpBtn')
-$SPPrefixHelpBtn   = $window.FindName('SPPrefixHelpBtn')
+$txtTenantId.ToolTip = (New-ReadableToolTip "Directory (Tenant) ID in Entra ID Overview. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+$txtTenantName.ToolTip = (New-ReadableToolTip "SharePoint tenant prefix from Initial domain. Example: contoso.onmicrosoft.com → enter: contoso")
+$btnSetTenant.ToolTip = (New-ReadableToolTip "Save tenant inputs locally so tenant-aware links (SharePoint/OneDrive/Entra) can open correctly.")
+$btnReset.ToolTip = (New-ReadableToolTip "Clears all fields and removes the saved config in %APPDATA%\PowerShell-Utility\M365Launcher\config.json")
+$txtSearch.ToolTip = (New-ReadableToolTip "Type to filter the tiles by name/keywords.")
 
-$script:TrayIcon   = $null
+# ----------------------------
+# Tray icon
+# ----------------------------
+$notifyIcon = New-Object System.Windows.Forms.NotifyIcon
+$notifyIcon.Icon = [System.Drawing.SystemIcons]::Information
+$notifyIcon.Text = "M365 Launcher"
+$notifyIcon.Visible = $true
 
-# ─── Build Admin Center Buttons ───────────────────────────────────────────────
-function Build-AdminCenterButton {
-    param([string]$Filter = '')
+$trayMenu = New-Object System.Windows.Forms.ContextMenuStrip
+$miShow = $trayMenu.Items.Add("Show")
+$miHide = $trayMenu.Items.Add("Hide")
+$trayMenu.Items.Add("-") | Out-Null
+$miExit = $trayMenu.Items.Add("Exit")
+$notifyIcon.ContextMenuStrip = $trayMenu
 
-    $AdminCentersPanel.Children.Clear()
+$miShow.Add_Click({ $window.Show(); $window.Activate() })
+$miHide.Add_Click({ $window.Hide() })
+$miExit.Add_Click({
+    $notifyIcon.Visible = $false
+    $window.Tag = "ForceExit"
+    $window.Close()
+})
+$notifyIcon.Add_DoubleClick({ $window.Show(); $window.Activate() })
 
-    $blueColor  = [System.Windows.Media.Color]::FromRgb(0, 120, 212)
-    $darkColor  = [System.Windows.Media.Color]::FromRgb(26, 26, 26)
-    $catBgColor = [System.Windows.Media.Color]::FromRgb(240, 246, 255)
-    $catBdColor = [System.Windows.Media.Color]::FromRgb(204, 224, 245)
+# ----------------------------
+# UI Logic
+# ----------------------------
+$centers = Get-AdminCenters
+$buttonMap = New-Object System.Collections.Generic.List[object]
 
-    $filtered = $script:AdminCenters | Where-Object {
-        $Filter -eq '' -or
-        $_.Name     -like "*$Filter*" -or
-        $_.Category -like "*$Filter*" -or
-        $_.Tooltip  -like "*$Filter*"
-    }
+function Resolve-CenterUrl {
+    param($center)
+    if ($null -eq $center) { return $null }
+    if ($center.ContainsKey("StaticUrl")) { return [string]$center.StaticUrl }
+    if ($center.ContainsKey("UrlBuilder")) { return & $center.UrlBuilder $state }
+    $null
+}
 
-    if ($null -eq $filtered -or @($filtered).Count -eq 0) {
-        $noResult = [System.Windows.Controls.TextBlock]::new()
-        $noResult.Text = "No admin centers match '$Filter'. Try a different search term."
-        $noResult.FontSize = 14
-        $noResult.Foreground = [System.Windows.Media.SolidColorBrush]::new(
-            [System.Windows.Media.Color]::FromRgb(102, 102, 102))
-        $noResult.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
-        $noResult.Margin = [System.Windows.Thickness]::new(0, 48, 0, 0)
-        [void]$AdminCentersPanel.Children.Add($noResult)
+function Invoke-Center {
+    param([Parameter(Mandatory)]$center)
+
+    $name = [string]$center.Name
+    $url  = Resolve-CenterUrl -center $center
+
+    if (-not $url) {
+        $lblStatus.Text = "Status: No URL for: $name"
         return
     }
 
-    $groups = @($filtered) | Group-Object -Property Category
-
-    foreach ($group in $groups) {
-        # Category header bar
-        $headerBorder = [System.Windows.Controls.Border]::new()
-        $headerBorder.Background = [System.Windows.Media.SolidColorBrush]::new($catBgColor)
-        $headerBorder.BorderBrush = [System.Windows.Media.SolidColorBrush]::new($catBdColor)
-        $headerBorder.BorderThickness = [System.Windows.Thickness]::new(0, 0, 0, 1)
-        $headerBorder.Margin = [System.Windows.Thickness]::new(0, 10, 0, 0)
-        $headerBorder.Padding = [System.Windows.Thickness]::new(10, 7, 10, 7)
-        $headerBorder.CornerRadius = [System.Windows.CornerRadius]::new(4, 4, 0, 0)
-
-        $headerText = [System.Windows.Controls.TextBlock]::new()
-        $headerText.Text = $group.Name.ToUpper()
-        $headerText.FontSize = 11
-        $headerText.FontWeight = [System.Windows.FontWeights]::SemiBold
-        $headerText.Foreground = [System.Windows.Media.SolidColorBrush]::new($blueColor)
-        $headerBorder.Child = $headerText
-        [void]$AdminCentersPanel.Children.Add($headerBorder)
-
-        # Buttons WrapPanel
-        $wrapPanel = [System.Windows.Controls.WrapPanel]::new()
-        $wrapPanel.Orientation = [System.Windows.Controls.Orientation]::Horizontal
-        $wrapPanel.Margin = [System.Windows.Thickness]::new(0, 4, 0, 4)
-
-        foreach ($center in $group.Group) {
-            # Create button
-            $btn = [System.Windows.Controls.Button]::new()
-            $btn.Style   = $window.Resources['AdminButtonStyle']
-            $btn.ToolTip = $center.Tooltip
-
-            # Button content: icon (Segoe MDL2) + label
-            $sp = [System.Windows.Controls.StackPanel]::new()
-            $sp.Orientation = [System.Windows.Controls.Orientation]::Vertical
-
-            $iconTb = [System.Windows.Controls.TextBlock]::new()
-            $iconTb.Text = $center.Icon
-            $iconTb.FontFamily = [System.Windows.Media.FontFamily]::new('Segoe MDL2 Assets')
-            $iconTb.FontSize = 24
-            $iconTb.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
-            $iconTb.Foreground = [System.Windows.Media.SolidColorBrush]::new($blueColor)
-
-            $nameTb = [System.Windows.Controls.TextBlock]::new()
-            $nameTb.Text = $center.Name
-            $nameTb.FontSize = 11
-            $nameTb.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
-            $nameTb.TextAlignment = [System.Windows.TextAlignment]::Center
-            $nameTb.TextWrapping = [System.Windows.TextWrapping]::Wrap
-            $nameTb.Margin = [System.Windows.Thickness]::new(4, 4, 4, 0)
-            $nameTb.Foreground = [System.Windows.Media.SolidColorBrush]::new($darkColor)
-
-            [void]$sp.Children.Add($iconTb)
-            [void]$sp.Children.Add($nameTb)
-            $btn.Content = $sp
-
-            # Click handler  - capture loop variables via closure
-            $capturedUrl  = $center.Url
-            $capturedName = $center.Name
-            $btn.add_Click({
-                $tid = $TenantIdBox.Text.Trim()
-                $spp = $SPPrefixBox.Text.Trim()
-                $url = Build-Url -UrlTemplate $capturedUrl -TenantId $tid -SPPrefix $spp
-                Open-AdminUrl -Url $url -Name $capturedName -SPPrefix $spp
-                $StatusText.Text = "Opened: $capturedName"
-            }.GetNewClosure())
-
-            [void]$wrapPanel.Children.Add($btn)
-        }
-
-        [void]$AdminCentersPanel.Children.Add($wrapPanel)
-    }
-}
-
-# ─── Load Saved Config ────────────────────────────────────────────────────────
-$savedConfig = Get-Config
-if ($savedConfig) {
-    $TenantIdBox.Text = if ($null -ne $savedConfig.TenantId) { $savedConfig.TenantId } else { '' }
-    $SPPrefixBox.Text = if ($null -ne $savedConfig.SPPrefix)  { $savedConfig.SPPrefix }  else { '' }
-    $CloseToTrayCheck.IsChecked = [bool]($savedConfig.CloseToTray)
-    $StatusText.Text = 'Configuration loaded from saved settings.'
-} else {
-    $StatusText.Text = "Welcome to M365 Admin Tool v$($script:Version)  - Enter your tenant details above to get started."
-}
-
-# ─── Search: placeholder + live filter ───────────────────────────────────────
-$SearchBox.add_TextChanged({
-    $SearchPlaceholder.Visibility =
-        if ($SearchBox.Text.Length -eq 0) { [System.Windows.Visibility]::Visible }
-        else                              { [System.Windows.Visibility]::Collapsed }
-    Build-AdminCenterButton -Filter $SearchBox.Text.Trim()
-})
-
-# ─── Save Config ──────────────────────────────────────────────────────────────
-$SaveConfigBtn.add_Click({
-    $tid  = $TenantIdBox.Text.Trim()
-    $spp  = $SPPrefixBox.Text.Trim()
-    $tray = $CloseToTrayCheck.IsChecked -eq $true
-    try {
-        Save-Config -TenantId $tid -SPPrefix $spp -CloseToTray $tray
-        $StatusText.Text = "Configuration saved  [$script:ConfigFile]"
-    } catch {
+    if ($center.Category -eq "Identity" -and -not (Test-TenantId $state.TenantId)) {
         [System.Windows.MessageBox]::Show(
-            "Failed to save configuration:`n$($_.Exception.Message)",
-            'Save Error',
-            [System.Windows.MessageBoxButton]::OK,
-            [System.Windows.MessageBoxImage]::Warning
+            "Enter a valid Directory (Tenant) ID (GUID) to open tenant-context Entra links.",
+            "Tenant ID required",
+            "OK",
+            "Warning"
         ) | Out-Null
+        return
     }
-})
 
-# ─── Reset Config ─────────────────────────────────────────────────────────────
-$ResetConfigBtn.add_Click({
-    $confirm = [System.Windows.MessageBox]::Show(
-        'This will clear all fields and delete the saved configuration file. Continue?',
-        'Reset Configuration',
-        [System.Windows.MessageBoxButton]::YesNo,
-        [System.Windows.MessageBoxImage]::Question
-    )
-    if ($confirm -eq [System.Windows.MessageBoxResult]::Yes) {
-        $TenantIdBox.Text = ''
-        $SPPrefixBox.Text = ''
-        $CloseToTrayCheck.IsChecked = $false
-        Remove-Config
-        $StatusText.Text = 'Configuration reset.'
-    }
-})
-
-# ─── Help: Tenant ID ──────────────────────────────────────────────────────────
-$TenantIdHelpBtn.add_Click({
-    [System.Windows.MessageBox]::Show(
-        "Where to find your Directory (Tenant) ID:`n`n" +
-        "Option 1  - Azure Portal / Entra ID`n" +
-        "  1. Open https://portal.azure.com`n" +
-        "  2. Search for 'Microsoft Entra ID'`n" +
-        "  3. On the Overview page, copy the Tenant ID`n`n" +
-        "Option 2  - Microsoft 365 Admin Center`n" +
-        "  1. Open https://admin.microsoft.com`n" +
-        "  2. Settings > Org settings > Organization profile`n" +
-        "  3. Locate the Tenant ID in the details`n`n" +
-        "Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-        'Where to Find Your Tenant ID',
-        [System.Windows.MessageBoxButton]::OK,
-        [System.Windows.MessageBoxImage]::Information
-    ) | Out-Null
-})
-
-# ─── Help: SharePoint Prefix ──────────────────────────────────────────────────
-$SPPrefixHelpBtn.add_Click({
-    [System.Windows.MessageBox]::Show(
-        "Where to find your SharePoint Tenant Prefix:`n`n" +
-        "Your SharePoint admin URL follows this pattern:`n" +
-        "  https://[PREFIX]-admin.sharepoint.com`n`n" +
-        "Example:`n" +
-        "  Full URL : https://contoso-admin.sharepoint.com`n" +
-        "  Prefix   : contoso`n`n" +
-        "How to find it:`n" +
-        "  1. Go to https://admin.microsoft.com`n" +
-        "  2. Click 'Show all' in the left navigation`n" +
-        "  3. Click SharePoint`n" +
-        "  4. Copy the part of the URL before '-admin.sharepoint.com'",
-        'Where to Find Your SharePoint Prefix',
-        [System.Windows.MessageBoxButton]::OK,
-        [System.Windows.MessageBoxImage]::Information
-    ) | Out-Null
-})
-
-# ─── Close-to-Tray ────────────────────────────────────────────────────────────
-$window.add_Closing({
-    param($s, $e)
-    # Tag = 'ForceClose' means exit from tray menu
-    if ($s.Tag -eq 'ForceClose') { return }
-
-    if ($CloseToTrayCheck.IsChecked -eq $true) {
-        $e.Cancel = $true
-        $window.Hide()
-        if ($null -eq $script:TrayIcon) {
-            $script:TrayIcon = New-TrayIcon
-            $script:TrayIcon.ShowBalloonTip(
-                2000,
-                'M365 Admin Tool',
-                'Running in the system tray. Double-click to restore.',
-                [System.Windows.Forms.ToolTipIcon]::Info
-            )
-        }
+    $lblStatus.Text = "Status: Opening $name ..."
+    if (-not (Open-Url -Url $url)) {
+        $lblStatus.Text = "Status: Failed to open $name"
+        [System.Windows.MessageBox]::Show("Could not open:`n$url", "Launch failed", "OK", "Error") | Out-Null
     } else {
-        if ($null -ne $script:TrayIcon) {
-            $script:TrayIcon.Visible = $false
-            $script:TrayIcon.Dispose()
-            $script:TrayIcon = $null
+        $lblStatus.Text = "Status: Opened $name"
+    }
+}
+
+function Set-TenantUiState {
+    $tid = (Nz $txtTenantId.Text "").Trim()
+    $tname = Normalize-TenantName (Nz $txtTenantName.Text "")
+
+    $isEmpty = [string]::IsNullOrWhiteSpace($tid)
+    $isValid = (-not $isEmpty) -and (Test-TenantId $tid)
+
+    if ($isEmpty) {
+        $txtTenantId.Background = [System.Windows.Media.Brushes]::White
+        $lblTenantIdValid.Text = "Not set"
+        $lblTenantIdValid.Foreground = [System.Windows.Media.Brushes]::Gray
+    } elseif ($isValid) {
+        $txtTenantId.Background = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#EBFFEB")))
+        $lblTenantIdValid.Text = "Valid ✅"
+        $lblTenantIdValid.Foreground = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#19783C")))
+    } else {
+        $txtTenantId.Background = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#FFEBEB")))
+        $lblTenantIdValid.Text = "Invalid ❌"
+        $lblTenantIdValid.Foreground = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#A02828")))
+    }
+
+    $badgeId = if ($isValid) { $tid } else { "(not set)" }
+    $badgeName = if (-not [string]::IsNullOrWhiteSpace($tname)) { $tname } else { "(no tenant prefix)" }
+    $lblCurrentTenant.Text = "$badgeName  |  $badgeId"
+}
+
+function Apply-Filter {
+    $q = (Nz $txtSearch.Text "").Trim().ToLowerInvariant()
+    foreach ($entry in $buttonMap) {
+        $b = $entry.Button
+        $hay = ("{0} {1}" -f $entry.Name, $entry.Keywords).ToLowerInvariant()
+        $b.Visibility = if ($q.Length -eq 0 -or $hay -like "*$q*") { "Visible" } else { "Collapsed" }
+    }
+}
+
+function Recalc-Columns {
+    # Auto-calc columns to fill width and reduce empty space
+    # Tile width approx 230 incl margins; clamp 2..8
+    $w = [Math]::Max(380, $svButtons.ActualWidth)
+    $cols = [int][Math]::Floor(($w - 20) / 240)
+    if ($cols -lt 2) { $cols = 2 }
+    if ($cols -gt 8) { $cols = 8 }
+    $ugButtons.Columns = $cols
+}
+
+function New-TileContent {
+    param(
+        [Parameter(Mandatory)][string]$Glyph,
+        [Parameter(Mandatory)][string]$Text
+    )
+
+    $sp = New-Object System.Windows.Controls.StackPanel
+    $sp.Orientation = "Horizontal"
+    $sp.HorizontalAlignment = "Center"
+    $sp.VerticalAlignment = "Center"
+
+    $icon = New-Object System.Windows.Controls.TextBlock
+    $icon.FontFamily = "Segoe MDL2 Assets"
+    $icon.Text = [char]([Convert]::ToInt32($Glyph, 16))
+    $icon.FontSize = 18
+    $icon.Margin = "0,0,10,0"
+    $icon.VerticalAlignment = "Center"
+
+    $lbl = New-Object System.Windows.Controls.TextBlock
+    $lbl.Text = $Text
+    $lbl.FontWeight = "SemiBold"
+    $lbl.VerticalAlignment = "Center"
+    $lbl.TextTrimming = "CharacterEllipsis"
+
+    $sp.Children.Add($icon) | Out-Null
+    $sp.Children.Add($lbl) | Out-Null
+    $sp
+}
+
+function Build-Buttons {
+    $ugButtons.Children.Clear()
+    $buttonMap.Clear()
+
+    foreach ($center in $centers) {
+        $btn = New-Object System.Windows.Controls.Button
+        $btn.Style = $window.FindResource("TileButtonStyle")
+        $btn.Tag = $center
+        $btn.Height = 54
+        $btn.Margin = "8"
+        $btn.Foreground = [System.Windows.Media.Brushes]::White
+        $btn.Background = New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString($center.Color))
+        $btn.BorderThickness = "0"
+        $btn.Cursor = "Hand"
+
+        $glyph = if ($center.ContainsKey("Icon") -and $center.Icon) { [string]$center.Icon } else { "E8A7" }
+        $btn.Content = (New-TileContent -Glyph $glyph -Text $center.Name)
+
+        # Readable tooltip per tile
+        $tipText = if ($center.ContainsKey("Notes") -and $center.Notes) {
+            "{0}`n{1}" -f $center.Notes, (Resolve-CenterUrl -center $center)
+        } else {
+            (Resolve-CenterUrl -center $center)
         }
+        $btn.ToolTip = (New-ReadableToolTip $tipText)
+
+        $btn.Add_Click({
+            if ($null -eq $this.Tag) { return }
+            Invoke-Center -center $this.Tag
+        })
+
+        $ugButtons.Children.Add($btn) | Out-Null
+
+        $buttonMap.Add([pscustomobject]@{
+            Button   = $btn
+            Name     = $center.Name
+            Keywords = (Nz $center.Keywords "")
+        }) | Out-Null
+    }
+
+    Recalc-Columns
+}
+
+# ----------------------------
+# Events
+# ----------------------------
+$txtTenantId.Add_TextChanged({ Set-TenantUiState })
+$txtTenantName.Add_LostFocus({
+    $txtTenantName.Text = Normalize-TenantName (Nz $txtTenantName.Text "")
+    Set-TenantUiState
+})
+
+$txtSearch.Add_TextChanged({ Apply-Filter })
+
+$btnCopyTenantId.Add_Click({
+    $t = (Nz $txtTenantId.Text "").Trim()
+    if ($t) { [System.Windows.Clipboard]::SetText($t) }
+})
+
+$btnSetTenant.Add_Click({
+    $tid = (Nz $txtTenantId.Text "").Trim()
+    $tname = Normalize-TenantName (Nz $txtTenantName.Text "")
+
+    if (-not [string]::IsNullOrWhiteSpace($tid) -and -not (Test-TenantId $tid)) {
+        [System.Windows.MessageBox]::Show("Directory (Tenant) ID must be a valid GUID.", "Invalid Tenant ID", "OK", "Warning") | Out-Null
+        return
+    }
+
+    $state.TenantId = $tid
+    $state.TenantName = $tname
+    Save-Config ([pscustomobject]@{ tenantId = $state.TenantId; tenantName = $state.TenantName })
+
+    # Rebuild tile tooltips (SharePoint/OneDrive/Entra URLs become tenant-aware)
+    Build-Buttons
+    Apply-Filter
+
+    $lblStatus.Text = "Status: Tenant saved"
+    Set-TenantUiState
+})
+
+$btnReset.Add_Click({
+    $txtTenantId.Text = ""
+    $txtTenantName.Text = ""
+    $txtSearch.Text = ""
+
+    $state.TenantId = ""
+    $state.TenantName = ""
+
+    Remove-Config
+
+    Build-Buttons
+    Apply-Filter
+    Set-TenantUiState
+
+    $lblStatus.Text = "Status: Reset complete"
+})
+
+$btnTenantIdHelp.Add_Click({
+    [System.Windows.MessageBox]::Show(
+@"
+To find your Directory (Tenant) ID:
+
+1) Go to https://entra.microsoft.com
+2) Click: Overview
+3) Copy: Directory (tenant) ID
+
+Format:
+xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+"@,
+        "Where to Find Tenant ID",
+        "OK",
+        "Information"
+    ) | Out-Null
+})
+
+$btnTenantNameHelp.Add_Click({
+    [System.Windows.MessageBox]::Show(
+@"
+To find your SharePoint tenant prefix:
+
+1) Go to https://admin.microsoft.com
+2) Settings → Domains
+3) Find the Initial domain (example):
+   contoso.onmicrosoft.com
+
+Use only the first part:
+   contoso
+
+This builds:
+https://contoso-admin.sharepoint.com
+"@,
+        "Where to Find SharePoint Tenant Prefix",
+        "OK",
+        "Information"
+    ) | Out-Null
+})
+
+$lnkEntraOverview.Add_Click({ Open-Url "https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/Overview" | Out-Null })
+$lnkDomains.Add_Click({ Open-Url "https://admin.microsoft.com/#/domains" | Out-Null })
+
+$btnExit.Add_Click({
+    $notifyIcon.Visible = $false
+    $window.Tag = "ForceExit"
+    $window.Close()
+})
+
+$window.Add_SizeChanged({ Recalc-Columns })
+
+$window.Add_Closing({
+    if ($window.Tag -eq "ForceExit") { return }
+
+    if ($chkCloseToTray.IsChecked) {
+        $_.Cancel = $true
+        $window.Hide()
+        $notifyIcon.BalloonTipTitle = "M365 Launcher"
+        $notifyIcon.BalloonTipText  = "Still running in the system tray."
+        $notifyIcon.ShowBalloonTip(1200)
+    } else {
+        $notifyIcon.Visible = $false
     }
 })
 
-# ─── Initial Render ───────────────────────────────────────────────────────────
-Build-AdminCenterButton
+# ----------------------------
+# Init
+# ----------------------------
+Build-Buttons
+Set-TenantUiState
+Apply-Filter
 
-# ─── Show Window ──────────────────────────────────────────────────────────────
-[void]$window.ShowDialog()
+# Show window
+$null = $window.ShowDialog()
 
-# ─── Cleanup ──────────────────────────────────────────────────────────────────
-if ($null -ne $script:TrayIcon) {
-    $script:TrayIcon.Visible = $false
-    $script:TrayIcon.Dispose()
-    $script:TrayIcon = $null
-}
+# Cleanup
+$notifyIcon.Visible = $false
+$notifyIcon.Dispose()
