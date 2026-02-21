@@ -1,0 +1,71 @@
+name: Build and Release EXE
+
+on:
+  release:
+    types: [ created ]
+
+permissions:
+  contents: write   # required to upload release assets
+
+jobs:
+  build:
+    name: Build EXE with PS2EXE
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse release version
+        id: version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          $ver = $tag.TrimStart('v')
+          # Ensure 4-part version string for Win32 version info (e.g. 3.1 -> 3.1.0.0)
+          $parts = $ver.Split('.')
+          while ($parts.Count -lt 4) { $parts += '0' }
+          $full = ($parts[0..3]) -join '.'
+          "version=$ver"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "full=$full"     | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Tag: $tag  |  Version: $ver  |  Full: $full"
+
+      - name: Install PS2EXE
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module -Name ps2exe -Force -Scope CurrentUser -AllowClobber
+
+      - name: Inject release version into script
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          $content = Get-Content -Path "src\M365AdminTool.ps1" -Raw
+          # Use a flexible pattern to match any whitespace around the assignment
+          $content = $content -replace '(\$script:Version\s*=\s*)''\S*''', "`${1}'$ver'"
+          Set-Content -Path "src\M365AdminTool.ps1" -Value $content -Encoding UTF8
+          Write-Host "Version injected: $ver"
+
+      - name: Build EXE
+        shell: pwsh
+        run: |
+          $full = "${{ steps.version.outputs.full }}"
+          Invoke-ps2exe `
+            -inputFile  "src\M365AdminTool.ps1" `
+            -outputFile "M365AdminTool.exe" `
+            -title       "Microsoft 365 Admin Tool" `
+            -description "Microsoft 365 Admin Center Quick Launcher (Multi-Tenant)" `
+            -company     "Randy Bordeaux" `
+            -product     "M365AdminTool" `
+            -version     $full `
+            -noConsole
+          Write-Host "Build complete: $(Get-Item M365AdminTool.exe | Select-Object -ExpandProperty Length) bytes"
+
+      - name: Upload EXE to release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            M365AdminTool.exe \
+            --clobber

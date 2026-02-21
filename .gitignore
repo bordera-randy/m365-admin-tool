@@ -1,0 +1,54 @@
+# Windows / Visual Studio
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Build output
+*.exe
+*.dll
+*.msi
+*.pdb
+*.ilk
+*.obj
+*.user
+bin/
+obj/
+out/
+dist/
+build/
+
+# PowerShell generated
+*.ps1xml
+
+# VS Code
+.vscode/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.nupkg
+
+# PSScriptAnalyzer cache
+.pssacache
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# Logs
+*.log
+*.tmp
+
+# Config backup (the actual config lives in %APPDATA%, not the repo)
+config.json
