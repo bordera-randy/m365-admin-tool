@@ -3,20 +3,11 @@ name: PowerShell Code Analysis
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - "**/*.ps1"
-      - "**/*.psm1"
-      - "**/*.psd1"
-      - ".github/workflows/ps-analysis.yml"
   pull_request:
     branches: [ "main" ]
-    paths:
-      - "**/*.ps1"
-      - "**/*.psm1"
-      - "**/*.psd1"
-      - ".github/workflows/ps-analysis.yml"
   schedule:
     - cron: "15 4 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -13,52 +13,53 @@ A graphical admin tool that gives you one-click access to every Microsoft 365 ad
  | Feature                      | Details                                                                               |
  |------------------------------|---------------------------------------------------------------------------------------|
  | **Multi-tenant**             | Enter your Directory (Tenant) ID and SharePoint prefix once; every button uses them   |
- | **20 admin centers**         | Identity, Messaging, Security, Devices, Apps & Services — all covered                 |
+ | **17 admin centers**         | Core, Identity, Messaging, Collaboration, Security, Devices, Power Platform           |
  | **Live search**              | Filter buttons in real-time by name, category, or description                         |
  | **Segoe MDL2 icons**         | Every button displays a crisp native Windows glyph                                    |
- | **Config persistence**       | Settings saved to `%APPDATA%\M365AdminTool\config.json`                               |
+ | **Config persistence**       | Settings saved to `%APPDATA%\PowerShell-Utility\M365Launcher\config.json`             |
  | **Reset button**             | Clears fields and deletes the saved config (with confirmation)                        |
  | **Close-to-tray**            | Optional: minimize to system tray with restore/exit context menu                      |
  | **Help dialogs**             | "Where to find" pop-ups for Tenant ID and SharePoint Prefix                           |
- | **Hover / press effects**    | Blue border + light-blue background on mouse-over                                     |
+ | **Hover / press effects**    | Lift animation and enhanced drop shadow on mouse-over                                 |
 
 ---
 
 ## Admin Centers
 
-### Identity & Access
+### Core
 
-- **M365 Admin** — Microsoft 365 Admin Center
-- **Entra ID** — Microsoft Entra ID (Azure Active Directory)
-- **Azure Portal** — Azure Portal (scoped to your tenant)
-- **Lighthouse** — Microsoft 365 Lighthouse (multi-tenant management)
+- **Microsoft 365 Admin Center** — Primary admin portal
+- **Users** — User accounts and licensing
+- **Licenses** — License and subscription management
+- **Billing** — Billing accounts and invoices
+- **Domains** — Domain and DNS management
 
 ### Messaging & Collaboration
 
-- **Exchange** — Exchange Online Admin Center
-- **Teams** — Microsoft Teams Admin Center
-- **SharePoint** — SharePoint Admin Center *(requires SharePoint Prefix)*
-- **OneDrive** — OneDrive Admin *(requires SharePoint Prefix)*
+- **Exchange Admin Center** — Exchange Online Admin Center
+- **Teams Admin Center** — Microsoft Teams Admin Center
+- **SharePoint Admin Center** — SharePoint Admin *(requires SharePoint Prefix)*
+- **OneDrive Admin** — OneDrive settings *(requires SharePoint Prefix)*
+
+### Identity & Azure
+
+- **Entra ID Admin Center** — Microsoft Entra ID / Azure AD *(uses Tenant ID when set)*
+- **Azure Portal** — Azure Portal
 
 ### Security & Compliance
 
-- **Security** — Microsoft Defender Security Center
-- **Compliance** — Microsoft Purview Compliance Portal
-- **Purview** — Microsoft Purview unified governance
-- **Defender XDR** — Microsoft Defender Extended Detection & Response
+- **Microsoft Defender Portal** — Defender for Endpoint and XDR
+- **Microsoft Purview Compliance** — Compliance, eDiscovery, and retention policies
+- **Microsoft 365 Defender (legacy)** — Legacy Defender portal
 
 ### Device Management
 
-- **Intune** — Microsoft Intune (Endpoint Manager)
-- **Endpoint Security** — Intune Endpoint Security policies
-- **Autopilot** — Windows Autopilot
+- **Intune / Endpoint Manager** — Microsoft Intune MDM/MAM
 
-### Apps & Services
+### Power Platform
 
-- **Power Platform** — Power Platform Admin Center
-- **Power BI** — Power BI Admin Portal
-- **Viva Insights** — Microsoft Viva Insights
-- **Viva Learning** — Viva Learning Admin
+- **Power Platform Admin** — Power Platform Admin Center
+- **Power BI Admin** — Power BI Admin Portal
 
 ---
 
@@ -104,10 +105,10 @@ On first launch, fill in the **Tenant Configuration** fields at the top of the w
 | **Directory (Tenant) ID** | Your Azure AD / Entra tenant GUID | Azure Portal → Entra ID → Overview |
 | **SharePoint Prefix** | Prefix of your SharePoint admin URL | The part before `-admin.sharepoint.com` |
 
-Click **Save** to persist the values to `%APPDATA%\M365AdminTool\config.json`.  
+Click **Set Tenant** to persist the values to `%APPDATA%\PowerShell-Utility\M365Launcher\config.json`.  
 Click **Reset** to clear all fields and delete the saved config.
 
-> Use the **ⓘ** help buttons next to each field for step-by-step guidance.
+> Use the **?** help buttons next to each field for step-by-step guidance.
 
 ---
 
@@ -116,18 +117,41 @@ Click **Reset** to clear all fields and delete the saved config.
 ```
 m365-admin-tool/
 ├── .github/
-│   └── workflows/
-│       ├── ci.yml              # Lint on push/PR
-│       ├── codeql.yml          # CodeQL scanning
-│       ├── ps-analysis.yml     # PSScriptAnalyzer → SARIF
-│       └── release.yml         # Build EXE on release
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.md
+│   │   ├── custom.md
+│   │   └── feature_request.md
+│   ├── img/
+│   │   └── m365-admin-tool-social-preview.jpg
+│   ├── workflows/
+│   │   ├── ci.yml              # PSScriptAnalyzer lint on push/PR
+│   │   ├── codeql.yml          # CodeQL scanning for workflow files
+│   │   ├── ps-analysis.yml     # PSScriptAnalyzer → SARIF upload
+│   │   └── release.yml         # Build EXE with PS2EXE on release
+│   ├── CODE_OF_CONDUCT.md
+│   ├── CONTRIBUTING.md
+│   ├── pull_request_template.md
+│   ├── RELEASE_TEMPLATE.md
+│   └── SECURITY.MD
 ├── src/
 │   └── M365AdminTool.ps1       # Main WPF/XAML PowerShell script
 ├── .gitignore
 ├── CHANGELOG.md
+├── LICENSE
 ├── PSScriptAnalyzerSettings.psd1
 └── README.md
 ```
+
+---
+
+## CI/CD Workflows
+
+| Workflow | Trigger | Purpose |
+|---|---|---|
+| **CI – Lint & Analyse** | push/PR to `main`, manual | PSScriptAnalyzer lint (Error + Warning) — fails the build on issues |
+| **PowerShell Code Analysis** | push/PR to `main`, weekly, manual | PSScriptAnalyzer SARIF report uploaded to GitHub Security tab |
+| **CodeQL** | push/PR to `main`, weekly, manual | CodeQL analysis of GitHub Actions workflow files |
+| **Build and Release EXE** | GitHub release created | Compiles `M365AdminTool.ps1` to a Windows EXE using PS2EXE |
 
 ---
 
@@ -142,6 +166,15 @@ m365-admin-tool/
    ```
 4. Open a Pull Request against `main`.
 
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for the full contribution guide and testing checklist.
+
+---
+
+## Security
+
+Please review the [Security Policy](.github/SECURITY.MD) before reporting vulnerabilities.  
+**Do not open public issues for security bugs** — follow the private disclosure process described in SECURITY.MD.
+
 ---
 
 ## Author
@@ -152,4 +185,4 @@ m365-admin-tool/
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+MIT License — see [LICENSE](LICENSE) for details.
