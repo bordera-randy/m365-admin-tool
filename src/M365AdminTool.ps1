@@ -2,21 +2,13 @@
 .SYNOPSIS
     Microsoft 365 Admin Center Quick Launcher (Multi-Tenant) - WPF/XAML
 .DESCRIPTION
-    WPF/XAML-based launcher with:
-      - Directory (Tenant) ID and SharePoint tenant prefix inputs
-      - Clear "Where to find" help + readable tooltips (no overlapping)
-      - Search box in top-right
-      - Section headers (Tenant Configuration, Admin Centers)
-      - Button grid that auto-fills space (dynamic UniformGrid columns)
-      - Iconography on buttons (Segoe MDL2 Assets glyphs)
-      - Config persistence to %APPDATA%
-      - Reset button clears fields + removes saved config
-      - Close-to-tray (optional) with tray icon
-
+    A quick launcher for Microsoft 365 admin centers with support for multiple tenants. 
+    Save tenant ID and name for tenant-aware links (Entra, SharePoint, OneDrive). 
+    Searchable tiles with direct links to various admin portals.
 .NOTES
     Author: Randy Bordeaux
     GitHub: https://github.com/bordera-randy
-    Version: 3.1
+    Version: 1.0
     Requirements: Windows PowerShell 5.1+, .NET Framework (WPF assemblies)
 #>
 
