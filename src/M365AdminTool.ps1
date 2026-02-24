@@ -15,6 +15,8 @@
 [CmdletBinding()]
 param()
 
+$script:Version = '1.0'  # Replaced at build time by release.yml
+
 # ----------------------------
 # WPF Assemblies
 # ----------------------------
