@@ -52,6 +52,9 @@ jobs:
               default       { 'warning' }
             }
             $relPath = $r.ScriptPath.Replace($env:GITHUB_WORKSPACE, '').TrimStart('\').Replace('\','/')
+            $region = @{}
+            if ($r.Line -as [int] -and [int]$r.Line -ge 1) { $region['startLine'] = [int]$r.Line }
+            if ($r.Column -as [int] -and [int]$r.Column -ge 1) { $region['startColumn'] = [int]$r.Column }
             @{
               ruleId  = $r.RuleName
               level   = $level
@@ -63,10 +66,7 @@ jobs:
                       uri       = $relPath
                       uriBaseId = '%SRCROOT%'
                     }
-                    region = @{
-                      startLine   = [int]$r.Line
-                      startColumn = [int]$r.Column
-                    }
+                    region = $region
                   }
                 }
               )
