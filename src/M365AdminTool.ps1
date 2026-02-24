@@ -110,7 +110,7 @@ function Get-EntraUrl {
 # ----------------------------
 # Admin Centers
 # ----------------------------
-function Get-AdminCenters {
+function Get-AdminCenter {
     @(
         # Core
         @{ Name="Microsoft 365 Admin Center"; Category="Core"; Color="#E67E22"; Notes="Primary admin portal"; StaticUrl="https://admin.microsoft.com"; Keywords="m365 admin center office365"; Icon="E713" } # GlobalNavButton
@@ -484,7 +484,7 @@ $notifyIcon.Add_DoubleClick({ $window.Show(); $window.Activate() })
 # ----------------------------
 # UI Logic
 # ----------------------------
-$centers = Get-AdminCenters
+$centers = Get-AdminCenter
 $buttonMap = New-Object System.Collections.Generic.List[object]
 
 function Resolve-CenterUrl {
@@ -560,7 +560,7 @@ function Apply-Filter {
     }
 }
 
-function Recalc-Columns {
+function Recalc-Column {
     # Auto-calc columns to fill width and reduce empty space
     # Tile width approx 230 incl margins; clamp 2..8
     $w = [Math]::Max(380, $svButtons.ActualWidth)
@@ -599,7 +599,7 @@ function New-TileContent {
     $sp
 }
 
-function Build-Buttons {
+function Build-Button {
     $ugButtons.Children.Clear()
     $buttonMap.Clear()
 
@@ -639,7 +639,7 @@ function Build-Buttons {
         }) | Out-Null
     }
 
-    Recalc-Columns
+    Recalc-Column
 }
 
 # ----------------------------
@@ -672,7 +672,7 @@ $btnSetTenant.Add_Click({
     Save-Config ([pscustomobject]@{ tenantId = $state.TenantId; tenantName = $state.TenantName })
 
     # Rebuild tile tooltips (SharePoint/OneDrive/Entra URLs become tenant-aware)
-    Build-Buttons
+    Build-Button
     Apply-Filter
 
     $lblStatus.Text = "Status: Tenant saved"
@@ -689,7 +689,7 @@ $btnReset.Add_Click({
 
     Remove-Config
 
-    Build-Buttons
+    Build-Button
     Apply-Filter
     Set-TenantUiState
 
@@ -745,7 +745,7 @@ $btnExit.Add_Click({
     $window.Close()
 })
 
-$window.Add_SizeChanged({ Recalc-Columns })
+$window.Add_SizeChanged({ Recalc-Column })
 
 $window.Add_Closing({
     if ($window.Tag -eq "ForceExit") { return }
@@ -764,7 +764,7 @@ $window.Add_Closing({
 # ----------------------------
 # Init
 # ----------------------------
-Build-Buttons
+Build-Button
 Set-TenantUiState
 Apply-Filter
 
