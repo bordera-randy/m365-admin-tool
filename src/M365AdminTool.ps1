@@ -571,6 +571,7 @@ function Update-Column {
 }
 
 function New-TileContent {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     param(
         [Parameter(Mandatory)][string]$Glyph,
         [Parameter(Mandatory)][string]$Text
