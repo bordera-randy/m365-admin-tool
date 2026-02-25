@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Microsoft 365 Admin Center Quick Launcher (Multi-Tenant) - WPF/XAML
 .DESCRIPTION
@@ -45,28 +45,22 @@ function Get-Config {
     [pscustomobject]@{}
 }
 
-function Save-Config {
-    [CmdletBinding(SupportsShouldProcess)]
-    param([object]$cfg)
-
-    if ($PSCmdlet.ShouldProcess("Config file", "Save")) {
-        Initialize-AppRoot
-        $cfg | ConvertTo-Json -Depth 6 | Set-Content -Path $ConfigPath -Encoding UTF8 -Force
-    }
+function Save-Config([object]$cfg) {
+    Initialize-AppRoot
+    $cfg | ConvertTo-Json -Depth 6 | Set-Content -Path $ConfigPath -Encoding UTF8
 }
 
 function Remove-Config {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
-    if ($PSCmdlet.ShouldProcess("Config file", "Remove")) {
-        if (Test-Path $ConfigPath) {
-            try {
-                Remove-Item $ConfigPath -Force -ErrorAction Stop | Out-Null
+    if (Test-Path $ConfigPath) {
+        try {
+            if ($PSCmdlet.ShouldProcess($ConfigPath, "Remove config file")) {
+                Remove-Item -Path $ConfigPath -Force -ErrorAction Stop | Out-Null
             }
-            catch {
-                Write-Warning "Could not remove config file: $_"
-            }
+        } catch {
+            Write-Verbose ("Remove-Config failed: {0}" -f $_.Exception.Message)
         }
     }
 }
@@ -107,8 +101,7 @@ function Open-Url {
         $psi.UseShellExecute = $true
         [System.Diagnostics.Process]::Start($psi) | Out-Null
         $true
-    }
-    catch {
+    } catch {
         $false
     }
 }
@@ -141,7 +134,7 @@ function Get-AdminCenter {
 
         # Collaboration
         @{
-            Name = "SharePoint Admin Center"; Category = "Collaboration"; Color = "#00B0F0"; Notes = "SharePoint admin"; Keywords = "sharepoint sp sites"; Icon = "E8A7" # Library
+            Name="SharePoint Admin Center"; Category="Collaboration"; Color="#00B0F0"; Notes="SharePoint admin"; Keywords="sharepoint sp sites"; Icon="E8A7" # Library
             UrlBuilder = {
                 param($state)
                 if ([string]::IsNullOrWhiteSpace($state.TenantName)) { "https://admin.microsoft.com/sharepoint" }
@@ -149,7 +142,7 @@ function Get-AdminCenter {
             }
         }
         @{
-            Name = "OneDrive Admin"; Category = "Collaboration"; Color = "#00CC99"; Notes = "OneDrive settings"; Keywords = "onedrive sync sharing"; Icon = "E753" # Cloud
+            Name="OneDrive Admin"; Category="Collaboration"; Color="#00CC99"; Notes="OneDrive settings"; Keywords="onedrive sync sharing"; Icon="E753" # Cloud
             UrlBuilder = {
                 param($state)
                 if ([string]::IsNullOrWhiteSpace($state.TenantName)) { "https://admin.microsoft.com/#/onedrive" }
@@ -159,7 +152,7 @@ function Get-AdminCenter {
 
         # Identity / Azure
         @{
-            Name = "Entra ID Admin Center"; Category = "Identity"; Color = "#9B59B6"; Notes = "Entra ID"; Keywords = "entra aad azuread identity conditional access"; Icon = "E72E" # Shield
+            Name="Entra ID Admin Center"; Category="Identity"; Color="#9B59B6"; Notes="Entra ID"; Keywords="entra aad azuread identity conditional access"; Icon="E72E" # Shield
             UrlBuilder = {
                 param($state)
                 if (Test-TenantId $state.TenantId) { Get-EntraUrl -TenantId $state.TenantId }
@@ -187,7 +180,7 @@ function Get-AdminCenter {
 # ----------------------------
 $cfg = Get-Config
 $state = [pscustomobject]@{
-    TenantId   = ($cfg.tenantId | ForEach-Object { "$_" })
+    TenantId = ($cfg.tenantId | ForEach-Object { "$_" })
     TenantName = (Convert-TenantName ($cfg.tenantName | ForEach-Object { "$_" }))
 }
 
@@ -458,17 +451,14 @@ $txtTenantName.Text = (Nz $state.TenantName "")
 # Tooltips (readable)
 # ----------------------------
 function New-ReadableToolTip {
-    [CmdletBinding(SupportsShouldProcess)]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     param([string]$Text)
-
-    if ($PSCmdlet.ShouldProcess("ToolTip", "Create")) {
-        $tb = New-Object System.Windows.Controls.TextBlock
-        $tb.Text = $Text
-        $tb.TextWrapping = "Wrap"
-        $tb.MaxWidth = 420
-        $tb.Margin = "8"
-        $tb
-    }
+    $tb = New-Object System.Windows.Controls.TextBlock
+    $tb.Text = $Text
+    $tb.TextWrapping = "Wrap"
+    $tb.MaxWidth = 420
+    $tb.Margin = "8"
+    $tb
 }
 
 $txtTenantId.ToolTip = (New-ReadableToolTip "Directory (Tenant) ID in Entra ID Overview. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
@@ -540,158 +530,130 @@ function Invoke-Center {
     if (-not (Open-Url -Url $url)) {
         $lblStatus.Text = "Status: Failed to open $name"
         [System.Windows.MessageBox]::Show("Could not open:`n$url", "Launch failed", "OK", "Error") | Out-Null
-    }
-    else {
+    } else {
         $lblStatus.Text = "Status: Opened $name"
     }
 }
 
 function Set-TenantUiState {
-    [CmdletBinding(SupportsShouldProcess)]
-    param()
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+    $tid = (Nz $txtTenantId.Text "").Trim()
+    $tname = Convert-TenantName (Nz $txtTenantName.Text "")
 
-    if ($PSCmdlet.ShouldProcess("UI State", "Update")) {
-        $tid = (Nz $txtTenantId.Text "").Trim()
-        $tname = Convert-TenantName (Nz $txtTenantName.Text "")
+    $isEmpty = [string]::IsNullOrWhiteSpace($tid)
+    $isValid = (-not $isEmpty) -and (Test-TenantId $tid)
 
-        $isEmpty = [string]::IsNullOrWhiteSpace($tid)
-        $isValid = (-not $isEmpty) -and (Test-TenantId $tid)
-
-        if ($isEmpty) {
-            $txtTenantId.Background = [System.Windows.Media.Brushes]::White
-            $lblTenantIdValid.Text = "Not set"
-            $lblTenantIdValid.Foreground = [System.Windows.Media.Brushes]::Gray
-        }
-        elseif ($isValid) {
-            $txtTenantId.Background = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#EBFFEB")))
-            $lblTenantIdValid.Text = "Valid ✅"
-            $lblTenantIdValid.Foreground = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#19783C")))
-        }
-        else {
-            $txtTenantId.Background = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#FFEBEB")))
-            $lblTenantIdValid.Text = "Invalid ❌"
-            $lblTenantIdValid.Foreground = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#A02828")))
-        }
-
-        $badgeId = if ($isValid) { $tid }
-        else { "(not set)" }
-        $badgeName = if (-not [string]::IsNullOrWhiteSpace($tname)) { $tname }
-        else { "(no tenant prefix)" }
-        $lblCurrentTenant.Text = "$badgeName  |  $badgeId"
+    if ($isEmpty) {
+        $txtTenantId.Background = [System.Windows.Media.Brushes]::White
+        $lblTenantIdValid.Text = "Not set"
+        $lblTenantIdValid.Foreground = [System.Windows.Media.Brushes]::Gray
+    } elseif ($isValid) {
+        $txtTenantId.Background = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#EBFFEB")))
+        $lblTenantIdValid.Text = "Valid ✅"
+        $lblTenantIdValid.Foreground = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#19783C")))
+    } else {
+        $txtTenantId.Background = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#FFEBEB")))
+        $lblTenantIdValid.Text = "Invalid ❌"
+        $lblTenantIdValid.Foreground = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#A02828")))
     }
+
+    $badgeId = if ($isValid) { $tid } else { "(not set)" }
+    $badgeName = if (-not [string]::IsNullOrWhiteSpace($tname)) { $tname } else { "(no tenant prefix)" }
+    $lblCurrentTenant.Text = "$badgeName | $badgeId"
 }
 
 function Set-Filter {
-    [CmdletBinding(SupportsShouldProcess)]
-    param()
-
-    if ($PSCmdlet.ShouldProcess("Filter", "Apply")) {
-        $q = (Nz $txtSearch.Text "").Trim().ToLowerInvariant()
-        foreach ($entry in $buttonMap) {
-            $b = $entry.Button
-            $hay = ("{0} {1}" -f $entry.Name, $entry.Keywords).ToLowerInvariant()
-            $b.Visibility = if ($q.Length -eq 0 -or $hay -like "*$q*") { "Visible" }
-            else { "Collapsed" }
-        }
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+    $q = (Nz $txtSearch.Text "").Trim().ToLowerInvariant()
+    foreach ($entry in $buttonMap) {
+        $b = $entry.Button
+        $hay = ("{0} {1}" -f $entry.Name, $entry.Keywords).ToLowerInvariant()
+        $b.Visibility = if ($q.Length -eq 0 -or $hay -like "*$q*") { "Visible" } else { "Collapsed" }
     }
 }
 
 function Update-Column {
-    [CmdletBinding(SupportsShouldProcess)]
-    param()
-
-    if ($PSCmdlet.ShouldProcess("Column Width", "Update")) {
-        # Auto-calc columns to fill width and reduce empty space
-        # Tile width approx 230 incl margins; clamp 2..8
-        $w = [Math]::Max(380, $svButtons.ActualWidth)
-        $cols = [int][Math]::Floor(($w - 20) / 240)
-        if ($cols -lt 2) { $cols = 2 }
-        if ($cols -gt 8) { $cols = 8 }
-        $ugButtons.Columns = $cols
-    }
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+    # Auto-calc columns to fill width and reduce empty space
+    # Tile width approx 230 incl margins; clamp 2..8
+    $w = [Math]::Max(380, $svButtons.ActualWidth)
+    $cols = [int][Math]::Floor(($w - 20) / 240)
+    if ($cols -lt 2) { $cols = 2 }
+    if ($cols -gt 8) { $cols = 8 }
+    $ugButtons.Columns = $cols
 }
 
 function New-TileContent {
-    [CmdletBinding(SupportsShouldProcess)]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     param(
         [Parameter(Mandatory)][string]$Glyph,
         [Parameter(Mandatory)][string]$Text
     )
 
-    if ($PSCmdlet.ShouldProcess("Tile Content", "Create")) {
-        $sp = New-Object System.Windows.Controls.StackPanel
-        $sp.Orientation = "Horizontal"
-        $sp.HorizontalAlignment = "Center"
-        $sp.VerticalAlignment = "Center"
+    $sp = New-Object System.Windows.Controls.StackPanel
+    $sp.Orientation = "Horizontal"
+    $sp.HorizontalAlignment = "Center"
+    $sp.VerticalAlignment = "Center"
 
-        $icon = New-Object System.Windows.Controls.TextBlock
-        $icon.FontFamily = "Segoe MDL2 Assets"
-        $icon.Text = [char]([Convert]::ToInt32($Glyph, 16))
-        $icon.FontSize = 18
-        $icon.Margin = "0,0,10,0"
-        $icon.VerticalAlignment = "Center"
+    $icon = New-Object System.Windows.Controls.TextBlock
+    $icon.FontFamily = "Segoe MDL2 Assets"
+    $icon.Text = [char]([Convert]::ToInt32($Glyph, 16))
+    $icon.FontSize = 18
+    $icon.Margin = "0,0,10,0"
+    $icon.VerticalAlignment = "Center"
 
-        $lbl = New-Object System.Windows.Controls.TextBlock
-        $lbl.Text = $Text
-        $lbl.FontWeight = "SemiBold"
-        $lbl.VerticalAlignment = "Center"
-        $lbl.TextTrimming = "CharacterEllipsis"
+    $lbl = New-Object System.Windows.Controls.TextBlock
+    $lbl.Text = $Text
+    $lbl.FontWeight = "SemiBold"
+    $lbl.VerticalAlignment = "Center"
+    $lbl.TextTrimming = "CharacterEllipsis"
 
-        $sp.Children.Add($icon) | Out-Null
-        $sp.Children.Add($lbl) | Out-Null
-        $sp
-    }
+    $sp.Children.Add($icon) | Out-Null
+    $sp.Children.Add($lbl) | Out-Null
+    $sp
 }
 
 function Build-Button {
-    [CmdletBinding(SupportsShouldProcess)]
-    param()
+    $ugButtons.Children.Clear()
+    $buttonMap.Clear()
 
-    if ($PSCmdlet.ShouldProcess("Buttons", "Build")) {
-        $ugButtons.Children.Clear()
-        $buttonMap.Clear()
+    foreach ($center in $centers) {
+        $btn = New-Object System.Windows.Controls.Button
+        $btn.Style = $window.FindResource("TileButtonStyle")
+        $btn.Tag = $center
+        $btn.Height = 54
+        $btn.Margin = "8"
+        $btn.Foreground = [System.Windows.Media.Brushes]::White
+        $btn.Background = New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString($center.Color))
+        $btn.BorderThickness = "0"
+        $btn.Cursor = "Hand"
 
-        foreach ($center in $centers) {
-            $btn = New-Object System.Windows.Controls.Button
-            $btn.Style = $window.FindResource("TileButtonStyle")
-            $btn.Tag = $center
-            $btn.Height = 54
-            $btn.Margin = "8"
-            $btn.Foreground = [System.Windows.Media.Brushes]::White
-            $btn.Background = New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString($center.Color))
-            $btn.BorderThickness = "0"
-            $btn.Cursor = "Hand"
+        $glyph = if ($center.ContainsKey("Icon") -and $center.Icon) { [string]$center.Icon } else { "E8A7" }
+        $btn.Content = (New-TileContent -Glyph $glyph -Text $center.Name)
 
-            $glyph = if ($center.ContainsKey("Icon") -and $center.Icon) { [string]$center.Icon }
-            else { "E8A7" }
-            $btn.Content = (New-TileContent -Glyph $glyph -Text $center.Name)
-
-            # Readable tooltip per tile
-            $tipText = if ($center.ContainsKey("Notes") -and $center.Notes) {
-                "{0}`n{1}" -f $center.Notes, (Resolve-CenterUrl -center $center)
-            }
-            else {
-                (Resolve-CenterUrl -center $center)
-            }
-            $btn.ToolTip = (New-ReadableToolTip $tipText)
-
-            $btn.Add_Click({
-                if ($null -eq $this.Tag) { return }
-                Invoke-Center -center $this.Tag
-            })
-
-            $ugButtons.Children.Add($btn) | Out-Null
-
-            $buttonMap.Add([pscustomobject]@{
-                Button   = $btn
-                Name     = $center.Name
-                Keywords = (Nz $center.Keywords "")
-            }) | Out-Null
+        # Readable tooltip per tile
+        $tipText = if ($center.ContainsKey("Notes") -and $center.Notes) {
+            "{0}`n{1}" -f $center.Notes, (Resolve-CenterUrl -center $center)
+        } else {
+            (Resolve-CenterUrl -center $center)
         }
+        $btn.ToolTip = (New-ReadableToolTip $tipText)
 
-        Update-Column
+        $btn.Add_Click({
+            if ($null -eq $this.Tag) { return }
+            Invoke-Center -center $this.Tag
+        })
+
+        $ugButtons.Children.Add($btn) | Out-Null
+
+        $buttonMap.Add([pscustomobject]@{
+            Button   = $btn
+            Name     = $center.Name
+            Keywords = (Nz $center.Keywords "")
+        }) | Out-Null
     }
+
+    Update-Column
 }
 
 # ----------------------------
@@ -750,7 +712,7 @@ $btnReset.Add_Click({
 
 $btnTenantIdHelp.Add_Click({
     [System.Windows.MessageBox]::Show(
-        @"
+@"
 To find your Directory (Tenant) ID:
 
 1) Go to https://entra.microsoft.com
@@ -768,7 +730,7 @@ xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 $btnTenantNameHelp.Add_Click({
     [System.Windows.MessageBox]::Show(
-        @"
+@"
 To find your SharePoint tenant prefix:
 
 1) Go to https://admin.microsoft.com
@@ -808,8 +770,7 @@ $window.Add_Closing({
         $notifyIcon.BalloonTipTitle = "M365 Launcher"
         $notifyIcon.BalloonTipText  = "Still running in the system tray."
         $notifyIcon.ShowBalloonTip(1200)
-    }
-    else {
+    } else {
         $notifyIcon.Visible = $false
     }
 })
