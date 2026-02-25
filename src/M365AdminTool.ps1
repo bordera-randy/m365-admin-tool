@@ -32,12 +32,12 @@ Add-Type -AssemblyName System.Windows.Forms
 $AppRoot    = Join-Path $env:APPDATA "PowerShell-Utility\M365Launcher"
 $ConfigPath = Join-Path $AppRoot "config.json"
 
-function Ensure-AppRoot {
+function Initialize-AppRoot {
     if (-not (Test-Path $AppRoot)) { New-Item -Path $AppRoot -ItemType Directory -Force | Out-Null }
 }
 
-function Load-Config {
-    Ensure-AppRoot
+function Get-Config {
+    Initialize-AppRoot
     if (Test-Path $ConfigPath) {
         try { return (Get-Content $ConfigPath -Raw | ConvertFrom-Json) }
         catch { return [pscustomobject]@{} }
@@ -46,7 +46,7 @@ function Load-Config {
 }
 
 function Save-Config([object]$cfg) {
-    Ensure-AppRoot
+    Initialize-AppRoot
     $cfg | ConvertTo-Json -Depth 6 | Set-Content -Path $ConfigPath -Encoding UTF8
 }
 
@@ -65,7 +65,7 @@ function Test-TenantId {
     [Guid]::TryParse((Nz $TenantId "").Trim(), [ref]$guid)
 }
 
-function Normalize-TenantName {
+function Convert-TenantName {
     param([string]$TenantName)
     if ([string]::IsNullOrWhiteSpace($TenantName)) { return "" }
     $t = $TenantName.Trim()
@@ -169,10 +169,10 @@ function Get-AdminCenter {
 # ----------------------------
 # State
 # ----------------------------
-$cfg = Load-Config
+$cfg = Get-Config
 $state = [pscustomobject]@{
     TenantId   = ($cfg.tenantId   | ForEach-Object { "$_" })
-    TenantName = (Normalize-TenantName ($cfg.tenantName | ForEach-Object { "$_" }))
+    TenantName = (Convert-TenantName ($cfg.tenantName | ForEach-Object { "$_" }))
 }
 
 # ----------------------------
@@ -527,7 +527,7 @@ function Invoke-Center {
 
 function Set-TenantUiState {
     $tid = (Nz $txtTenantId.Text "").Trim()
-    $tname = Normalize-TenantName (Nz $txtTenantName.Text "")
+    $tname = Convert-TenantName (Nz $txtTenantName.Text "")
 
     $isEmpty = [string]::IsNullOrWhiteSpace($tid)
     $isValid = (-not $isEmpty) -and (Test-TenantId $tid)
@@ -551,7 +551,7 @@ function Set-TenantUiState {
     $lblCurrentTenant.Text = "$badgeName  |  $badgeId"
 }
 
-function Apply-Filter {
+function Set-Filter {
     $q = (Nz $txtSearch.Text "").Trim().ToLowerInvariant()
     foreach ($entry in $buttonMap) {
         $b = $entry.Button
@@ -560,7 +560,7 @@ function Apply-Filter {
     }
 }
 
-function Recalc-Column {
+function Update-Column {
     # Auto-calc columns to fill width and reduce empty space
     # Tile width approx 230 incl margins; clamp 2..8
     $w = [Math]::Max(380, $svButtons.ActualWidth)
@@ -639,7 +639,7 @@ function Build-Button {
         }) | Out-Null
     }
 
-    Recalc-Column
+    Update-Column
 }
 
 # ----------------------------
@@ -647,11 +647,11 @@ function Build-Button {
 # ----------------------------
 $txtTenantId.Add_TextChanged({ Set-TenantUiState })
 $txtTenantName.Add_LostFocus({
-    $txtTenantName.Text = Normalize-TenantName (Nz $txtTenantName.Text "")
+    $txtTenantName.Text = Convert-TenantName (Nz $txtTenantName.Text "")
     Set-TenantUiState
 })
 
-$txtSearch.Add_TextChanged({ Apply-Filter })
+$txtSearch.Add_TextChanged({ Set-Filter })
 
 $btnCopyTenantId.Add_Click({
     $t = (Nz $txtTenantId.Text "").Trim()
@@ -660,7 +660,7 @@ $btnCopyTenantId.Add_Click({
 
 $btnSetTenant.Add_Click({
     $tid = (Nz $txtTenantId.Text "").Trim()
-    $tname = Normalize-TenantName (Nz $txtTenantName.Text "")
+    $tname = Convert-TenantName (Nz $txtTenantName.Text "")
 
     if (-not [string]::IsNullOrWhiteSpace($tid) -and -not (Test-TenantId $tid)) {
         [System.Windows.MessageBox]::Show("Directory (Tenant) ID must be a valid GUID.", "Invalid Tenant ID", "OK", "Warning") | Out-Null
@@ -673,7 +673,7 @@ $btnSetTenant.Add_Click({
 
     # Rebuild tile tooltips (SharePoint/OneDrive/Entra URLs become tenant-aware)
     Build-Button
-    Apply-Filter
+    Set-Filter
 
     $lblStatus.Text = "Status: Tenant saved"
     Set-TenantUiState
@@ -690,7 +690,7 @@ $btnReset.Add_Click({
     Remove-Config
 
     Build-Button
-    Apply-Filter
+    Set-Filter
     Set-TenantUiState
 
     $lblStatus.Text = "Status: Reset complete"
@@ -745,7 +745,7 @@ $btnExit.Add_Click({
     $window.Close()
 })
 
-$window.Add_SizeChanged({ Recalc-Column })
+$window.Add_SizeChanged({ Update-Column })
 
 $window.Add_Closing({
     if ($window.Tag -eq "ForceExit") { return }
@@ -766,7 +766,7 @@ $window.Add_Closing({
 # ----------------------------
 Build-Button
 Set-TenantUiState
-Apply-Filter
+Set-Filter
 
 # Show window
 $null = $window.ShowDialog()
