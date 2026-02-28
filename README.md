@@ -10,17 +10,17 @@ A graphical admin tool that gives you one-click access to every Microsoft 365 ad
 
 ## Features
 
- | Feature                      | Details                                                                               |
- |------------------------------|---------------------------------------------------------------------------------------|
- | **Multi-tenant**             | Enter your Directory (Tenant) ID and SharePoint prefix once; every button uses them   |
- | **17 admin centers**         | Core, Identity, Messaging, Collaboration, Security, Devices, Power Platform           |
- | **Live search**              | Filter buttons in real-time by name, category, or description                         |
- | **Segoe MDL2 icons**         | Every button displays a crisp native Windows glyph                                    |
- | **Config persistence**       | Settings saved to `%APPDATA%\PowerShell-Utility\M365Launcher\config.json`             |
- | **Reset button**             | Clears fields and deletes the saved config (with confirmation)                        |
- | **Close-to-tray**            | Optional: minimize to system tray with restore/exit context menu                      |
- | **Help dialogs**             | "Where to find" pop-ups for Tenant ID and SharePoint Prefix                           |
- | **Hover / press effects**    | Lift animation and enhanced drop shadow on mouse-over                                 |
+| Feature                   | Details                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------- |
+| **Multi-tenant**          | Enter your Directory (Tenant) ID and SharePoint prefix once; every button uses them   |
+| **17 admin centers**      | Core, Identity, Messaging, Collaboration, Security, Devices, Power Platform           |
+| **Live search**           | Filter buttons in real-time by name, category, or description                         |
+| **Segoe MDL2 icons**      | Every button displays a crisp native Windows glyph                                    |
+| **Config persistence**    | Settings saved to `%APPDATA%\PowerShell-Utility\M365Launcher\config.json`             |
+| **Reset button**          | Clears fields and deletes the saved config (with confirmation)                        |
+| **Close-to-tray**         | Optional: minimize to system tray with restore/exit context menu                      |
+| **Help dialogs**          | "Where to find" pop-ups for Tenant ID and SharePoint Prefix                           |
+| **Hover / press effects** | Lift animation and enhanced drop shadow on mouse-over                                 |
 
 ---
 
@@ -65,11 +65,11 @@ A graphical admin tool that gives you one-click access to every Microsoft 365 ad
 
 ## Requirements
 
-| Requirement           | Version                   |
-|-----------------------|---------------------------|
-| Windows PowerShell    | 5.1 or later              |
-| .NET Framework (WPF)  | Included in Windows 10/11 |
-| Windows               | 10 or later               |
+| Requirement          | Version                   |
+| -------------------- | ------------------------- |
+| Windows PowerShell   | 5.1 or later              |
+| .NET Framework (WPF) | Included in Windows 10/11 |
+| Windows              | 10 or later               |
 
 > **Note:** The tool opens admin portals in your default web browser. No additional PowerShell modules are needed to run it.
 
@@ -100,10 +100,10 @@ powershell -ExecutionPolicy Bypass -File src\M365AdminTool.ps1
 
 On first launch, fill in the **Tenant Configuration** fields at the top of the window:
 
-| Field | Description | How to find |
-|---|---|---|
-| **Directory (Tenant) ID** | Your Azure AD / Entra tenant GUID | Azure Portal → Entra ID → Overview |
-| **SharePoint Prefix** | Prefix of your SharePoint admin URL | The part before `-admin.sharepoint.com` |
+| Field                    | Description                           | How to find                             |
+| ------------------------ | ------------------------------------- | --------------------------------------- |
+| **Directory (Tenant) ID** | Your Azure AD / Entra tenant GUID     | Azure Portal → Entra ID → Overview      |
+| **SharePoint Prefix**    | Prefix of your SharePoint admin URL   | The part before `-admin.sharepoint.com` |
 
 Click **Set Tenant** to persist the values to `%APPDATA%\PowerShell-Utility\M365Launcher\config.json`.  
 Click **Reset** to clear all fields and delete the saved config.
@@ -132,13 +132,13 @@ m365-admin-tool/
 │   ├── CONTRIBUTING.md
 │   ├── pull_request_template.md
 │   ├── RELEASE_TEMPLATE.md
-│   └── SECURITY.MD
+│   ├── SECURITY.MD
+│   └──PSScriptAnalyzerSettings.psd1
 ├── src/
 │   └── M365AdminTool.ps1       # Main WPF/XAML PowerShell script
 ├── .gitignore
 ├── CHANGELOG.md
 ├── LICENSE
-├── PSScriptAnalyzerSettings.psd1
 └── README.md
 ```
 
@@ -146,12 +146,12 @@ m365-admin-tool/
 
 ## CI/CD Workflows
 
-| Workflow | Trigger | Purpose |
-|---|---|---|
-| **CI – Lint & Analyse** | push/PR to `main`, manual | PSScriptAnalyzer lint (Error + Warning) — fails the build on issues |
-| **PowerShell Code Analysis** | push/PR to `main`, weekly, manual | PSScriptAnalyzer SARIF report uploaded to GitHub Security tab |
-| **CodeQL** | push/PR to `main`, weekly, manual | CodeQL analysis of GitHub Actions workflow files |
-| **Build and Release EXE** | GitHub release created | Compiles `M365AdminTool.ps1` to a Windows EXE using PS2EXE |
+| Workflow                        | Trigger                    | Purpose                                                                   |
+| ------------------------------- | -------------------------- | ------------------------------------------------------------------------- |
+| **CI – Lint & Analyse**         | push/PR to `main`, manual  | PSScriptAnalyzer lint (Error + Warning) — fails the build on issues       |
+| **PowerShell Code Analysis**    | push/PR to `main`, weekly  | PSScriptAnalyzer SARIF report uploaded to GitHub Security tab             |
+| **CodeQL**                      | push/PR to `main`, weekly  | CodeQL analysis of GitHub Actions workflow files                          |
+| **Build and Release EXE**       | GitHub release created     | Compiles `M365AdminTool.ps1` to a Windows EXE using PS2EXE                |
 
 ---
 
@@ -160,10 +160,12 @@ m365-admin-tool/
 1. Fork the repository and create a feature branch.
 2. Make your changes in `src/M365AdminTool.ps1`.
 3. Run PSScriptAnalyzer locally before submitting a PR:
+
    ```powershell
    Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
    Invoke-ScriptAnalyzer -Path src\M365AdminTool.ps1 -Settings PSScriptAnalyzerSettings.psd1
    ```
+
 4. Open a Pull Request against `main`.
 
 See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for the full contribution guide and testing checklist.
@@ -186,3 +188,4 @@ Please review the [Security Policy](.github/SECURITY.MD) before reporting vulner
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
+
