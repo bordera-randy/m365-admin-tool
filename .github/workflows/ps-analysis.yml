@@ -36,7 +36,7 @@ jobs:
           $results = Invoke-ScriptAnalyzer `
             -Path "${{ github.workspace }}\src" `
             -Recurse `
-            -Settings "${{ github.workspace }}\PSScriptAnalyzerSettings.psd1" `
+            -Settings "${{ github.workspace }}\.github\PSScriptAnalyzerSettings.psd1" `
             -Severity @('Error', 'Warning', 'Information')
 
           # Build SARIF document
