@@ -1,0 +1,174 @@
+
+RuleName                            Severity     ScriptName Line  Message
+--------                            --------     ---------- ----  -------
+PSAlignAssignmentStatement          Warning      M365AdminT 150   Assignment statements are not aligned
+                                                 ool.ps1
+PSAlignAssignmentStatement          Warning      M365AdminT 151   Assignment statements are not aligned
+                                                 ool.ps1
+PSAlignAssignmentStatement          Warning      M365AdminT 152   Assignment statements are not aligned
+                                                 ool.ps1
+PSAlignAssignmentStatement          Warning      M365AdminT 153   Assignment statements are not aligned
+                                                 ool.ps1
+PSAlignAssignmentStatement          Warning      M365AdminT 154   Assignment statements are not aligned
+                                                 ool.ps1
+PSAlignAssignmentStatement          Warning      M365AdminT 155   Assignment statements are not aligned
+                                                 ool.ps1
+PSAlignAssignmentStatement          Warning      M365AdminT 156   Assignment statements are not aligned
+                                                 ool.ps1
+PSUseConsistentWhitespace           Warning      M365AdminT 484   Use space before and after binary and assignment operators.
+                                                 ool.ps1
+PSUseConsistentWhitespace           Warning      M365AdminT 840   Use space before and after binary and assignment operators.
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 525   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 526   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 527   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 528   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 708   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 709   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 710   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 711   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 712   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 717   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 718   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 719   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 720   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 731   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 732   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 733   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 738   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 739   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 740   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 743   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 744   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 746   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 747   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 748   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 749   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 751   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 752   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 753   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 755   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 756   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 757   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 759   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 760   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 761   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 764   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 765   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 766   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 768   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 769   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 771   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 773   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 774   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 775   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 777   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 778   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 781   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 782   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 792   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 793   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 794   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 795   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 796   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 799   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 800   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 814   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 815   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 816   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 817   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 818   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 824   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 825   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 826   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 827   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 832   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 833   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 834   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 836   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 837   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 838   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 839   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 840   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 841   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 842   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 843   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 844   Indentation not consistent
+                                                 ool.ps1
+PSUseConsistentIndentation          Warning      M365AdminT 845   Indentation not consistent
+                                                 ool.ps1
+

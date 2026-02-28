@@ -147,13 +147,13 @@ function Get-AdminCenter {
 
         # Collaboration
         @{
-            Name        = "SharePoint Admin Center"
-            Category    = "Collaboration"
-            Color       = "#00B0F0"
-            Notes       = "SharePoint admin"
-            Keywords    = "sharepoint sp sites"
-            Icon        = "E8A7" # Library
-            UrlBuilder  = {
+            Name       = "SharePoint Admin Center"
+            Category   = "Collaboration"
+            Color      = "#00B0F0"
+            Notes      = "SharePoint admin"
+            Keywords   = "sharepoint sp sites"
+            Icon       = "E8A7" # Library
+            UrlBuilder = {
                 param($state)
                 if ([string]::IsNullOrWhiteSpace($state.TenantName)) {
                     "https://admin.microsoft.com/sharepoint"
@@ -178,8 +178,6 @@ function Get-AdminCenter {
                 }
             }
         }
-            }
-        }
 
         # Identity / Azure
         @{
@@ -196,8 +194,6 @@ function Get-AdminCenter {
                 } else {
                     "https://entra.microsoft.com"
                 }
-            }
-        }
             }
         }
         @{ Name = "Azure Portal"; Category = "Identity"; Color = "#2980B9"; Notes = "Azure"; StaticUrl = "https://portal.azure.com"; Keywords = "azure portal subscriptions"; Icon = "E7AD" } # AzureLogo (approx)
@@ -485,7 +481,7 @@ $svButtons = $window.FindName("svButtons")
 $ugButtons = $window.FindName("ugButtons")
 
 # Apply initial state
-$txtTenantId.Text   = (Nz $state.TenantId "")
+$txtTenantId.Text = (Nz $state.TenantId "")
 $txtTenantName.Text = (Nz $state.TenantName "")
 
 # ----------------------------
@@ -526,10 +522,10 @@ $notifyIcon.ContextMenuStrip = $trayMenu
 $miShow.Add_Click({ $window.Show(); $window.Activate() })
 $miHide.Add_Click({ $window.Hide() })
 $miExit.Add_Click({
-    $notifyIcon.Visible = $false
-    $window.Tag = "ForceExit"
-    $window.Close()
-})
+        $notifyIcon.Visible = $false
+        $window.Tag = "ForceExit"
+        $window.Close()
+    })
 $notifyIcon.Add_DoubleClick({ $window.Show(); $window.Activate() })
 
 # ----------------------------
@@ -709,19 +705,19 @@ function Build-Button {
         $btn.ToolTip = (New-ReadableToolTip $tipText)
 
         $btn.Add_Click({
-            if ($null -eq $this.Tag) {
-                return
-            }
-            Invoke-Center -center $this.Tag
-        })
+                if ($null -eq $this.Tag) {
+                    return
+                }
+                Invoke-Center -center $this.Tag
+            })
 
         $ugButtons.Children.Add($btn) | Out-Null
 
         $buttonMap.Add([pscustomobject]@{
-            Button   = $btn
-            Name     = $center.Name
-            Keywords = (Nz $center.Keywords "")
-        }) | Out-Null
+                Button   = $btn
+                Name     = $center.Name
+                Keywords = (Nz $center.Keywords "")
+            }) | Out-Null
     }
 
     Update-Column
@@ -732,58 +728,58 @@ function Build-Button {
 # ----------------------------
 $txtTenantId.Add_TextChanged({ Set-TenantUiState })
 $txtTenantName.Add_LostFocus({
-    $txtTenantName.Text = Convert-TenantName (Nz $txtTenantName.Text "")
-    Set-TenantUiState
-})
+        $txtTenantName.Text = Convert-TenantName (Nz $txtTenantName.Text "")
+        Set-TenantUiState
+    })
 
 $txtSearch.Add_TextChanged({ Set-Filter })
 
 $btnCopyTenantId.Add_Click({
-    $t = (Nz $txtTenantId.Text "").Trim()
-    if ($t) { [System.Windows.Clipboard]::SetText($t) }
-})
+        $t = (Nz $txtTenantId.Text "").Trim()
+        if ($t) { [System.Windows.Clipboard]::SetText($t) }
+    })
 
 $btnSetTenant.Add_Click({
-    $tid = (Nz $txtTenantId.Text "").Trim()
-    $tname = Convert-TenantName (Nz $txtTenantName.Text "")
+        $tid = (Nz $txtTenantId.Text "").Trim()
+        $tname = Convert-TenantName (Nz $txtTenantName.Text "")
 
-    if (-not [string]::IsNullOrWhiteSpace($tid) -and -not (Test-TenantId $tid)) {
-        [System.Windows.MessageBox]::Show("Directory (Tenant) ID must be a valid GUID.", "Invalid Tenant ID", "OK", "Warning") | Out-Null
-        return
-    }
+        if (-not [string]::IsNullOrWhiteSpace($tid) -and -not (Test-TenantId $tid)) {
+            [System.Windows.MessageBox]::Show("Directory (Tenant) ID must be a valid GUID.", "Invalid Tenant ID", "OK", "Warning") | Out-Null
+            return
+        }
 
-    $state.TenantId = $tid
-    $state.TenantName = $tname
-    Save-Config ([pscustomobject]@{ tenantId = $state.TenantId; tenantName = $state.TenantName })
+        $state.TenantId = $tid
+        $state.TenantName = $tname
+        Save-Config ([pscustomobject]@{ tenantId = $state.TenantId; tenantName = $state.TenantName })
 
-    # Rebuild tile tooltips (SharePoint/OneDrive/Entra URLs become tenant-aware)
-    Build-Button
-    Set-Filter
+        # Rebuild tile tooltips (SharePoint/OneDrive/Entra URLs become tenant-aware)
+        Build-Button
+        Set-Filter
 
-    $lblStatus.Text = "Status: Tenant saved"
-    Set-TenantUiState
-})
+        $lblStatus.Text = "Status: Tenant saved"
+        Set-TenantUiState
+    })
 
 $btnReset.Add_Click({
-    $txtTenantId.Text = ""
-    $txtTenantName.Text = ""
-    $txtSearch.Text = ""
+        $txtTenantId.Text = ""
+        $txtTenantName.Text = ""
+        $txtSearch.Text = ""
 
-    $state.TenantId = ""
-    $state.TenantName = ""
+        $state.TenantId = ""
+        $state.TenantName = ""
 
-    Remove-Config
+        Remove-Config
 
-    Build-Button
-    Set-Filter
-    Set-TenantUiState
+        Build-Button
+        Set-Filter
+        Set-TenantUiState
 
-    $lblStatus.Text = "Status: Reset complete"
-})
+        $lblStatus.Text = "Status: Reset complete"
+    })
 
 $btnTenantIdHelp.Add_Click({
-    [System.Windows.MessageBox]::Show(
-        @"
+        [System.Windows.MessageBox]::Show(
+            @"
 To find your Directory (Tenant) ID:
 
 1) Go to https://entra.microsoft.com
@@ -793,15 +789,15 @@ To find your Directory (Tenant) ID:
 Format:
 xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 "@,
-        "Where to Find Tenant ID",
-        "OK",
-        "Information"
-    ) | Out-Null
-})
+            "Where to Find Tenant ID",
+            "OK",
+            "Information"
+        ) | Out-Null
+    })
 
 $btnTenantNameHelp.Add_Click({
-    [System.Windows.MessageBox]::Show(
-        @"
+        [System.Windows.MessageBox]::Show(
+            @"
 To find your SharePoint tenant prefix:
 
 1) Go to https://admin.microsoft.com
@@ -815,38 +811,38 @@ Use only the first part:
 This builds:
 https://contoso-admin.sharepoint.com
 "@,
-        "Where to Find SharePoint Tenant Prefix",
-        "OK",
-        "Information"
-    ) | Out-Null
-})
+            "Where to Find SharePoint Tenant Prefix",
+            "OK",
+            "Information"
+        ) | Out-Null
+    })
 
 $lnkEntraOverview.Add_Click({ Open-Url "https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/Overview" | Out-Null })
 $lnkDomains.Add_Click({ Open-Url "https://admin.microsoft.com/#/domains" | Out-Null })
 
 $btnExit.Add_Click({
-    $notifyIcon.Visible = $false
-    $window.Tag = "ForceExit"
-    $window.Close()
-})
+        $notifyIcon.Visible = $false
+        $window.Tag = "ForceExit"
+        $window.Close()
+    })
 
 $window.Add_SizeChanged({ Update-Column })
 
 $window.Add_Closing({
-    if ($window.Tag -eq "ForceExit") {
-        return
-    }
+        if ($window.Tag -eq "ForceExit") {
+            return
+        }
 
-    if ($chkCloseToTray.IsChecked) {
-        $_.Cancel = $true
-        $window.Hide()
-        $notifyIcon.BalloonTipTitle = "M365 Launcher"
-        $notifyIcon.BalloonTipText  = "Still running in the system tray."
-        $notifyIcon.ShowBalloonTip(1200)
-    } else {
-        $notifyIcon.Visible = $false
-    }
-})
+        if ($chkCloseToTray.IsChecked) {
+            $_.Cancel = $true
+            $window.Hide()
+            $notifyIcon.BalloonTipTitle = "M365 Launcher"
+            $notifyIcon.BalloonTipText = "Still running in the system tray."
+            $notifyIcon.ShowBalloonTip(1200)
+        } else {
+            $notifyIcon.Visible = $false
+        }
+    })
 
 # ----------------------------
 # Init
@@ -861,3 +857,4 @@ $null = $window.ShowDialog()
 # Cleanup
 $notifyIcon.Visible = $false
 $notifyIcon.Dispose()
+
