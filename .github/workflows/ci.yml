@@ -25,13 +25,21 @@ jobs:
           Set-PSRepository PSGallery -InstallationPolicy Trusted
           Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
 
+      - name: Format PowerShell scripts
+        shell: pwsh
+        run: |
+          Invoke-Formatter `
+            -Path "${{ github.workspace }}\src" `
+            -Settings "${{ github.workspace }}\.github\PSScriptAnalyzerSettings.psd1" |
+          Set-Content "${{ github.workspace }}\src\M365AdminTool.ps1"
+
       - name: Lint PowerShell scripts
         shell: pwsh
         run: |
           $results = Invoke-ScriptAnalyzer `
             -Path "${{ github.workspace }}\src" `
             -Recurse `
-            -Settings "${{ github.workspace }}\PSScriptAnalyzerSettings.psd1" `
+            -Settings "${{ github.workspace }}\.github\PSScriptAnalyzerSettings.psd1" `
             -Severity @('Error', 'Warning')
 
           if ($results.Count -gt 0) {
