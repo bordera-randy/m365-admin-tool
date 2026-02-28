@@ -33,14 +33,20 @@ $AppRoot    = Join-Path $env:APPDATA "PowerShell-Utility\M365Launcher"
 $ConfigPath = Join-Path $AppRoot "config.json"
 
 function Initialize-AppRoot {
-    if (-not (Test-Path $AppRoot)) { New-Item -Path $AppRoot -ItemType Directory -Force | Out-Null }
+    if (-not (Test-Path $AppRoot)) {
+        New-Item -Path $AppRoot -ItemType Directory -Force | Out-Null
+    }
 }
 
 function Get-Config {
     Initialize-AppRoot
     if (Test-Path $ConfigPath) {
-        try { return (Get-Content $ConfigPath -Raw | ConvertFrom-Json) }
-        catch { return [pscustomobject]@{} }
+        try {
+            return (Get-Content $ConfigPath -Raw | ConvertFrom-Json)
+        }
+        catch {
+            return [pscustomobject]@{}
+        }
     }
     [pscustomobject]@{}
 }
@@ -59,7 +65,8 @@ function Remove-Config {
             if ($PSCmdlet.ShouldProcess($ConfigPath, "Remove config file")) {
                 Remove-Item -Path $ConfigPath -Force -ErrorAction Stop | Out-Null
             }
-        } catch {
+        }
+        catch {
             Write-Verbose ("Remove-Config failed: {0}" -f $_.Exception.Message)
         }
     }
@@ -76,11 +83,17 @@ function Test-TenantId {
 
 function Convert-TenantName {
     param([string]$TenantName)
-    if ([string]::IsNullOrWhiteSpace($TenantName)) { return "" }
+    if ([string]::IsNullOrWhiteSpace($TenantName)) {
+        return ""
+    }
     $t = $TenantName.Trim()
 
-    if ($t -match '^(?<name>[^.]+)\.onmicrosoft\.com$') { return $Matches['name'] }
-    if ($t -match '^(?<name>[^.]+)-admin\.sharepoint\.com$') { return $Matches['name'] }
+    if ($t -match '^(?<name>[^.]+)\.onmicrosoft\.com$') {
+        return $Matches['name']
+    }
+    if ($t -match '^(?<name>[^.]+)-admin\.sharepoint\.com$') {
+        return $Matches['name']
+    }
     $t
 }
 
@@ -89,7 +102,9 @@ function Nz {
         $Value,
         [string]$Default = ""
     )
-    if ($null -ne $Value -and $Value -ne [DBNull]::Value) { return $Value }
+    if ($null -ne $Value -and $Value -ne [DBNull]::Value) {
+        return $Value
+    }
     return $Default
 }
 
@@ -101,7 +116,8 @@ function Open-Url {
         $psi.UseShellExecute = $true
         [System.Diagnostics.Process]::Start($psi) | Out-Null
         $true
-    } catch {
+    }
+    catch {
         $false
     }
 }
@@ -134,29 +150,56 @@ function Get-AdminCenter {
 
         # Collaboration
         @{
-            Name="SharePoint Admin Center"; Category="Collaboration"; Color="#00B0F0"; Notes="SharePoint admin"; Keywords="sharepoint sp sites"; Icon="E8A7" # Library
+            Name = "SharePoint Admin Center"
+            Category = "Collaboration"
+            Color = "#00B0F0"
+            Notes = "SharePoint admin"
+            Keywords = "sharepoint sp sites"
+            Icon = "E8A7" # Library
             UrlBuilder = {
                 param($state)
-                if ([string]::IsNullOrWhiteSpace($state.TenantName)) { "https://admin.microsoft.com/sharepoint" }
-                else { Get-SharePointAdminUrl -TenantName $state.TenantName }
+                if ([string]::IsNullOrWhiteSpace($state.TenantName)) {
+                    "https://admin.microsoft.com/sharepoint"
+                }
+                else {
+                    Get-SharePointAdminUrl -TenantName $state.TenantName
+                }
             }
         }
         @{
-            Name="OneDrive Admin"; Category="Collaboration"; Color="#00CC99"; Notes="OneDrive settings"; Keywords="onedrive sync sharing"; Icon="E753" # Cloud
+            Name = "OneDrive Admin"
+            Category = "Collaboration"
+            Color = "#00CC99"
+            Notes = "OneDrive settings"
+            Keywords = "onedrive sync sharing"
+            Icon = "E753" # Cloud
             UrlBuilder = {
                 param($state)
-                if ([string]::IsNullOrWhiteSpace($state.TenantName)) { "https://admin.microsoft.com/#/onedrive" }
-                else { Get-SharePointAdminUrl -TenantName $state.TenantName }
+                if ([string]::IsNullOrWhiteSpace($state.TenantName)) {
+                    "https://admin.microsoft.com/#/onedrive"
+                }
+                else {
+                    Get-SharePointAdminUrl -TenantName $state.TenantName
+                }
             }
         }
 
         # Identity / Azure
         @{
-            Name="Entra ID Admin Center"; Category="Identity"; Color="#9B59B6"; Notes="Entra ID"; Keywords="entra aad azuread identity conditional access"; Icon="E72E" # Shield
+            Name = "Entra ID Admin Center"
+            Category = "Identity"
+            Color = "#9B59B6"
+            Notes = "Entra ID"
+            Keywords = "entra aad azuread identity conditional access"
+            Icon = "E72E" # Shield
             UrlBuilder = {
                 param($state)
-                if (Test-TenantId $state.TenantId) { Get-EntraUrl -TenantId $state.TenantId }
-                else { "https://entra.microsoft.com" }
+                if (Test-TenantId $state.TenantId) {
+                    Get-EntraUrl -TenantId $state.TenantId
+                }
+                else {
+                    "https://entra.microsoft.com"
+                }
             }
         }
         @{ Name = "Azure Portal"; Category = "Identity"; Color = "#2980B9"; Notes = "Azure"; StaticUrl = "https://portal.azure.com"; Keywords = "azure portal subscriptions"; Icon = "E7AD" } # AzureLogo (approx)
@@ -180,7 +223,7 @@ function Get-AdminCenter {
 # ----------------------------
 $cfg = Get-Config
 $state = [pscustomobject]@{
-    TenantId = ($cfg.tenantId | ForEach-Object { "$_" })
+    TenantId   = ($cfg.tenantId | ForEach-Object { "$_" })
     TenantName = (Convert-TenantName ($cfg.tenantName | ForEach-Object { "$_" }))
 }
 
@@ -499,9 +542,15 @@ $buttonMap = New-Object System.Collections.Generic.List[object]
 
 function Resolve-CenterUrl {
     param($center)
-    if ($null -eq $center) { return $null }
-    if ($center.ContainsKey("StaticUrl")) { return [string]$center.StaticUrl }
-    if ($center.ContainsKey("UrlBuilder")) { return & $center.UrlBuilder $state }
+    if ($null -eq $center) {
+        return $null
+    }
+    if ($center.ContainsKey("StaticUrl")) {
+        return [string]$center.StaticUrl
+    }
+    if ($center.ContainsKey("UrlBuilder")) {
+        return & $center.UrlBuilder $state
+    }
     $null
 }
 
@@ -530,7 +579,8 @@ function Invoke-Center {
     if (-not (Open-Url -Url $url)) {
         $lblStatus.Text = "Status: Failed to open $name"
         [System.Windows.MessageBox]::Show("Could not open:`n$url", "Launch failed", "OK", "Error") | Out-Null
-    } else {
+    }
+    else {
         $lblStatus.Text = "Status: Opened $name"
     }
 }
@@ -547,11 +597,13 @@ function Set-TenantUiState {
         $txtTenantId.Background = [System.Windows.Media.Brushes]::White
         $lblTenantIdValid.Text = "Not set"
         $lblTenantIdValid.Foreground = [System.Windows.Media.Brushes]::Gray
-    } elseif ($isValid) {
+    }
+    elseif ($isValid) {
         $txtTenantId.Background = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#EBFFEB")))
         $lblTenantIdValid.Text = "Valid ✅"
         $lblTenantIdValid.Foreground = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#19783C")))
-    } else {
+    }
+    else {
         $txtTenantId.Background = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#FFEBEB")))
         $lblTenantIdValid.Text = "Invalid ❌"
         $lblTenantIdValid.Foreground = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#A02828")))
@@ -578,8 +630,12 @@ function Update-Column {
     # Tile width approx 230 incl margins; clamp 2..8
     $w = [Math]::Max(380, $svButtons.ActualWidth)
     $cols = [int][Math]::Floor(($w - 20) / 240)
-    if ($cols -lt 2) { $cols = 2 }
-    if ($cols -gt 8) { $cols = 8 }
+    if ($cols -lt 2) {
+        $cols = 2
+    }
+    if ($cols -gt 8) {
+        $cols = 8
+    }
     $ugButtons.Columns = $cols
 }
 
@@ -634,13 +690,16 @@ function Build-Button {
         # Readable tooltip per tile
         $tipText = if ($center.ContainsKey("Notes") -and $center.Notes) {
             "{0}`n{1}" -f $center.Notes, (Resolve-CenterUrl -center $center)
-        } else {
+        }
+        else {
             (Resolve-CenterUrl -center $center)
         }
         $btn.ToolTip = (New-ReadableToolTip $tipText)
 
         $btn.Add_Click({
-            if ($null -eq $this.Tag) { return }
+            if ($null -eq $this.Tag) {
+                return
+            }
             Invoke-Center -center $this.Tag
         })
 
@@ -712,7 +771,7 @@ $btnReset.Add_Click({
 
 $btnTenantIdHelp.Add_Click({
     [System.Windows.MessageBox]::Show(
-@"
+        @"
 To find your Directory (Tenant) ID:
 
 1) Go to https://entra.microsoft.com
@@ -730,7 +789,7 @@ xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 $btnTenantNameHelp.Add_Click({
     [System.Windows.MessageBox]::Show(
-@"
+        @"
 To find your SharePoint tenant prefix:
 
 1) Go to https://admin.microsoft.com
@@ -762,7 +821,9 @@ $btnExit.Add_Click({
 $window.Add_SizeChanged({ Update-Column })
 
 $window.Add_Closing({
-    if ($window.Tag -eq "ForceExit") { return }
+    if ($window.Tag -eq "ForceExit") {
+        return
+    }
 
     if ($chkCloseToTray.IsChecked) {
         $_.Cancel = $true
@@ -770,7 +831,8 @@ $window.Add_Closing({
         $notifyIcon.BalloonTipTitle = "M365 Launcher"
         $notifyIcon.BalloonTipText  = "Still running in the system tray."
         $notifyIcon.ShowBalloonTip(1200)
-    } else {
+    }
+    else {
         $notifyIcon.Visible = $false
     }
 })
