@@ -28,9 +28,8 @@ jobs:
       - name: Format PowerShell scripts
         shell: pwsh
         run: |
-          Invoke-Formatter `
-            -Path "${{ github.workspace }}\src" `
-            -Settings "${{ github.workspace }}\.github\PSScriptAnalyzerSettings.psd1" |
+          GET-CONTENT "${{ github.workspace }}\src\M365AdminTool.ps1" -Raw |
+          Invoke-Formatter -Settings "${{ github.workspace }}\.github\PSScriptAnalyzerSettings.psd1" |
           Set-Content "${{ github.workspace }}\src\M365AdminTool.ps1"
 
       - name: Lint PowerShell scripts
