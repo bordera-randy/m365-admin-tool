@@ -150,13 +150,13 @@ function Get-AdminCenter {
 
         # Collaboration
         @{
-            Name = "SharePoint Admin Center"
-            Category = "Collaboration"
-            Color = "#00B0F0"
-            Notes = "SharePoint admin"
-            Keywords = "sharepoint sp sites"
-            Icon = "E8A7" # Library
-            UrlBuilder = {
+            Name        = "SharePoint Admin Center"
+            Category    = "Collaboration"
+            Color       = "#00B0F0"
+            Notes       = "SharePoint admin"
+            Keywords    = "sharepoint sp sites"
+            Icon        = "E8A7" # Library
+            UrlBuilder  = {
                 param($state)
                 if ([string]::IsNullOrWhiteSpace($state.TenantName)) {
                     "https://admin.microsoft.com/sharepoint"
