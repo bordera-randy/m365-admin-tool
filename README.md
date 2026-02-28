@@ -188,4 +188,3 @@ Please review the [Security Policy](.github/SECURITY.MD) before reporting vulner
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
-

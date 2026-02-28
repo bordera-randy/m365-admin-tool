@@ -23,3 +23,17 @@
 - Code scanning: PSScriptAnalyzer SARIF uploaded to GitHub Security tab
 - CodeQL workflow for GitHub Actions workflow files
 - Release workflow: auto-builds Windows EXE via PS2EXE on GitHub release creation
+
+### Changed
+
+- Refactored code for improved readability and consistency across codebase
+- Enhanced CI workflow with script formatting and PSScriptAnalyzer settings
+- Improved error handling and ShouldProcess support in state-changing functions
+- Updated function naming conventions for clarity (e.g., Ensure-AppRoot → Initialize-AppRoot)
+
+### Fixed
+
+- Fixed PSScriptAnalyzer plural noun warnings in custom cmdlet names
+- Fixed invalid SARIF region data crashing PowerShell Code Analysis workflow
+- Fixed workflow failures and corrected path references
+
