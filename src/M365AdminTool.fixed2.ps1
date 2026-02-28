@@ -2,8 +2,8 @@
 .SYNOPSIS
     Microsoft 365 Admin Center Quick Launcher (Multi-Tenant) - WPF/XAML
 .DESCRIPTION
-    A quick launcher for Microsoft 365 admin centers with support for multiple tenants.
-    Save tenant ID and name for tenant-aware links (Entra, SharePoint, OneDrive).
+    A quick launcher for Microsoft 365 admin centers with support for multiple tenants. 
+    Save tenant ID and name for tenant-aware links (Entra, SharePoint, OneDrive). 
     Searchable tiles with direct links to various admin portals.
 .NOTES
     Author: Randy Bordeaux
@@ -29,7 +29,7 @@ Add-Type -AssemblyName System.Windows.Forms
 # ----------------------------
 # Persistence
 # ----------------------------
-$AppRoot    = Join-Path $env:APPDATA "PowerShell-Utility\M365Launcher"
+$AppRoot = Join-Path $env:APPDATA "PowerShell-Utility\M365Launcher"
 $ConfigPath = Join-Path $AppRoot "config.json"
 
 function Initialize-AppRoot {
@@ -51,17 +51,8 @@ function Save-Config([object]$cfg) {
 }
 
 function Remove-Config {
-    [CmdletBinding(SupportsShouldProcess)]
-    param()
-
     if (Test-Path $ConfigPath) {
-        try {
-            if ($PSCmdlet.ShouldProcess($ConfigPath, "Remove config file")) {
-                Remove-Item -Path $ConfigPath -Force -ErrorAction Stop | Out-Null
-            }
-        } catch {
-            Write-Verbose ("Remove-Config failed: {0}" -f $_.Exception.Message)
-        }
+        try { Remove-Item $ConfigPath -Force -ErrorAction Stop | Out-Null } catch {}
     }
 }
 
@@ -122,15 +113,15 @@ function Get-EntraUrl {
 function Get-AdminCenter {
     @(
         # Core
-        @{ Name = "Microsoft 365 Admin Center"; Category = "Core"; Color = "#E67E22"; Notes = "Primary admin portal"; StaticUrl = "https://admin.microsoft.com"; Keywords = "m365 admin center office365"; Icon = "E713" } # GlobalNavButton
-        @{ Name = "Users"; Category = "Core"; Color = "#6B8E23"; Notes = "Users blade"; StaticUrl = "https://admin.microsoft.com/#/users"; Keywords = "users accounts licensing"; Icon = "E77B" } # Contact
-        @{ Name = "Licenses"; Category = "Core"; Color = "#2ECC71"; Notes = "Licensing"; StaticUrl = "https://admin.microsoft.com/#/licenses"; Keywords = "licenses subscriptions"; Icon = "E8D7" } # Permissions
-        @{ Name = "Billing"; Category = "Core"; Color = "#16A085"; Notes = "Billing"; StaticUrl = "https://admin.microsoft.com/#/billingaccounts"; Keywords = "billing invoices payments"; Icon = "E8C7" } # Money
-        @{ Name = "Domains"; Category = "Core"; Color = "#34495E"; Notes = "Domains"; StaticUrl = "https://admin.microsoft.com/#/domains"; Keywords = "domains dns"; Icon = "E774" } # World
+        @{ Name="Microsoft 365 Admin Center"; Category="Core"; Color="#E67E22"; Notes="Primary admin portal"; StaticUrl="https://admin.microsoft.com"; Keywords="m365 admin center office365"; Icon="E713" } # GlobalNavButton
+        @{ Name="Users"; Category="Core"; Color="#6B8E23"; Notes="Users blade"; StaticUrl="https://admin.microsoft.com/#/users"; Keywords="users accounts licensing"; Icon="E77B" } # Contact
+        @{ Name="Licenses"; Category="Core"; Color="#2ECC71"; Notes="Licensing"; StaticUrl="https://admin.microsoft.com/#/licenses"; Keywords="licenses subscriptions"; Icon="E8D7" } # Permissions
+        @{ Name="Billing"; Category="Core"; Color="#16A085"; Notes="Billing"; StaticUrl="https://admin.microsoft.com/#/billingaccounts"; Keywords="billing invoices payments"; Icon="E8C7" } # Money
+        @{ Name="Domains"; Category="Core"; Color="#34495E"; Notes="Domains"; StaticUrl="https://admin.microsoft.com/#/domains"; Keywords="domains dns"; Icon="E774" } # World
 
         # Messaging
-        @{ Name = "Exchange Admin Center"; Category = "Messaging"; Color = "#0078D7"; Notes = "Exchange Online"; StaticUrl = "https://admin.exchange.microsoft.com"; Keywords = "exchange mail exo"; Icon = "E715" } # Mail
-        @{ Name = "Teams Admin Center"; Category = "Messaging"; Color = "#5695D2"; Notes = "Teams"; StaticUrl = "https://admin.teams.microsoft.com"; Keywords = "teams voice calling"; Icon = "E902" } # Video
+        @{ Name="Exchange Admin Center"; Category="Messaging"; Color="#0078D7"; Notes="Exchange Online"; StaticUrl="https://admin.exchange.microsoft.com"; Keywords="exchange mail exo"; Icon="E715" } # Mail
+        @{ Name="Teams Admin Center"; Category="Messaging"; Color="#5695D2"; Notes="Teams"; StaticUrl="https://admin.teams.microsoft.com"; Keywords="teams voice calling"; Icon="E902" } # Video
 
         # Collaboration
         @{
@@ -159,19 +150,19 @@ function Get-AdminCenter {
                 else { "https://entra.microsoft.com" }
             }
         }
-        @{ Name = "Azure Portal"; Category = "Identity"; Color = "#2980B9"; Notes = "Azure"; StaticUrl = "https://portal.azure.com"; Keywords = "azure portal subscriptions"; Icon = "E7AD" } # AzureLogo (approx)
+        @{ Name="Azure Portal"; Category="Identity"; Color="#2980B9"; Notes="Azure"; StaticUrl="https://portal.azure.com"; Keywords="azure portal subscriptions"; Icon="E7AD" } # AzureLogo (approx)
 
         # Security & Compliance
-        @{ Name = "Microsoft Defender Portal"; Category = "Security"; Color = "#C0392B"; Notes = "Defender"; StaticUrl = "https://security.microsoft.com"; Keywords = "defender security mde"; Icon = "EA18" } # SecurityGroup
-        @{ Name = "Microsoft Purview Compliance"; Category = "Security"; Color = "#7848A9"; Notes = "Purview"; StaticUrl = "https://compliance.microsoft.com"; Keywords = "purview compliance ediscovery retention"; Icon = "E8EF" } # ComplianceAudit
-        @{ Name = "Microsoft 365 Defender (legacy)"; Category = "Security"; Color = "#8E44AD"; Notes = "Legacy"; StaticUrl = "https://security.microsoft.com/homepage"; Keywords = "m365 defender portal"; Icon = "EA18" }
+        @{ Name="Microsoft Defender Portal"; Category="Security"; Color="#C0392B"; Notes="Defender"; StaticUrl="https://security.microsoft.com"; Keywords="defender security mde"; Icon="EA18" } # SecurityGroup
+        @{ Name="Microsoft Purview Compliance"; Category="Security"; Color="#7848A9"; Notes="Purview"; StaticUrl="https://compliance.microsoft.com"; Keywords="purview compliance ediscovery retention"; Icon="E8EF" } # ComplianceAudit
+        @{ Name="Microsoft 365 Defender (legacy)"; Category="Security"; Color="#8E44AD"; Notes="Legacy"; StaticUrl="https://security.microsoft.com/homepage"; Keywords="m365 defender portal"; Icon="EA18" }
 
         # Devices
-        @{ Name = "Intune / Endpoint Manager"; Category = "Devices"; Color = "#1ABC9C"; Notes = "Endpoint"; StaticUrl = "https://endpoint.microsoft.com"; Keywords = "intune endpoint manager mdm"; Icon = "E7F8" } # DeviceLaptop
+        @{ Name="Intune / Endpoint Manager"; Category="Devices"; Color="#1ABC9C"; Notes="Endpoint"; StaticUrl="https://endpoint.microsoft.com"; Keywords="intune endpoint manager mdm"; Icon="E7F8" } # DeviceLaptop
 
         # Power Platform
-        @{ Name = "Power Platform Admin"; Category = "Power"; Color = "#2D89EF"; Notes = "Power Platform"; StaticUrl = "https://admin.powerplatform.microsoft.com"; Keywords = "power platform"; Icon = "E7C1" } # Puzzle
-        @{ Name = "Power BI Admin"; Category = "Power"; Color = "#F1C40F"; Notes = "Power BI"; StaticUrl = "https://app.powerbi.com/admin-portal"; Keywords = "powerbi bi"; Icon = "E9D2" } # BarChart
+        @{ Name="Power Platform Admin"; Category="Power"; Color="#2D89EF"; Notes="Power Platform"; StaticUrl="https://admin.powerplatform.microsoft.com"; Keywords="power platform"; Icon="E7C1" } # Puzzle
+        @{ Name="Power BI Admin"; Category="Power"; Color="#F1C40F"; Notes="Power BI"; StaticUrl="https://app.powerbi.com/admin-portal"; Keywords="powerbi bi"; Icon="E9D2" } # BarChart
     )
 }
 
@@ -180,7 +171,7 @@ function Get-AdminCenter {
 # ----------------------------
 $cfg = Get-Config
 $state = [pscustomobject]@{
-    TenantId = ($cfg.tenantId | ForEach-Object { "$_" })
+    TenantId   = ($cfg.tenantId   | ForEach-Object { "$_" })
     TenantName = (Convert-TenantName ($cfg.tenantName | ForEach-Object { "$_" }))
 }
 
@@ -188,13 +179,14 @@ $state = [pscustomobject]@{
 # XAML UI (no overlapping text; search in top-right; section headers)
 # ----------------------------
 $xaml = @"
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Microsoft 365 Admin Centers (Multi-Tenant)"
-        Height="820" Width="1040"
-        WindowStartupLocation="CenterScreen"
-        ResizeMode="CanResize"
-        Background="#F0F5FA">
+<Window xmlns              = "http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x            = "http://schemas.microsoft.com/winfx/2006/xaml"
+        Title              = "Microsoft 365 Admin Centers (Multi-Tenant)"
+        Height             = "820"
+        Width              = "1040"
+        WindowStartupLocation = "CenterScreen"
+        ResizeMode         = "CanResize"
+        Background         = "#F0F5FA">
     <Window.Resources>
         <!-- 3D-ish tile button style -->
         <Style x:Key="TileButtonStyle" TargetType="Button">
@@ -425,33 +417,32 @@ $reader = New-Object System.Xml.XmlNodeReader ([xml]$xaml)
 $window = [Windows.Markup.XamlReader]::Load($reader)
 
 # Named controls
-$txtTenantId       = $window.FindName("txtTenantId")
-$txtTenantName     = $window.FindName("txtTenantName")
-$txtSearch         = $window.FindName("txtSearch")
-$lblCurrentTenant  = $window.FindName("lblCurrentTenant")
-$lblTenantIdValid  = $window.FindName("lblTenantIdValid")
-$lblStatus         = $window.FindName("lblStatus")
-$btnCopyTenantId   = $window.FindName("btnCopyTenantId")
-$btnTenantIdHelp   = $window.FindName("btnTenantIdHelp")
+$txtTenantId = $window.FindName("txtTenantId")
+$txtTenantName = $window.FindName("txtTenantName")
+$txtSearch = $window.FindName("txtSearch")
+$lblCurrentTenant = $window.FindName("lblCurrentTenant")
+$lblTenantIdValid = $window.FindName("lblTenantIdValid")
+$lblStatus = $window.FindName("lblStatus")
+$btnCopyTenantId = $window.FindName("btnCopyTenantId")
+$btnTenantIdHelp = $window.FindName("btnTenantIdHelp")
 $btnTenantNameHelp = $window.FindName("btnTenantNameHelp")
-$btnSetTenant      = $window.FindName("btnSetTenant")
-$btnReset          = $window.FindName("btnReset")
-$btnExit           = $window.FindName("btnExit")
-$chkCloseToTray    = $window.FindName("chkCloseToTray")
-$lnkEntraOverview  = $window.FindName("lnkEntraOverview")
-$lnkDomains        = $window.FindName("lnkDomains")
-$svButtons         = $window.FindName("svButtons")
-$ugButtons         = $window.FindName("ugButtons")
+$btnSetTenant = $window.FindName("btnSetTenant")
+$btnReset = $window.FindName("btnReset")
+$btnExit = $window.FindName("btnExit")
+$chkCloseToTray = $window.FindName("chkCloseToTray")
+$lnkEntraOverview = $window.FindName("lnkEntraOverview")
+$lnkDomains = $window.FindName("lnkDomains")
+$svButtons = $window.FindName("svButtons")
+$ugButtons = $window.FindName("ugButtons")
 
 # Apply initial state
-$txtTenantId.Text   = (Nz $state.TenantId "")
+$txtTenantId.Text = (Nz $state.TenantId "")
 $txtTenantName.Text = (Nz $state.TenantName "")
 
 # ----------------------------
 # Tooltips (readable)
 # ----------------------------
 function New-ReadableToolTip {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     param([string]$Text)
     $tb = New-Object System.Windows.Controls.TextBlock
     $tb.Text = $Text
@@ -509,7 +500,7 @@ function Invoke-Center {
     param([Parameter(Mandatory)]$center)
 
     $name = [string]$center.Name
-    $url  = Resolve-CenterUrl -center $center
+    $url = Resolve-CenterUrl -center $center
 
     if (-not $url) {
         $lblStatus.Text = "Status: No URL for: $name"
@@ -536,7 +527,9 @@ function Invoke-Center {
 }
 
 function Set-TenantUiState {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+    if (-not $PSCmdlet.ShouldProcess("UI", "Update tenant UI state")) { return }
     $tid = (Nz $txtTenantId.Text "").Trim()
     $tname = Convert-TenantName (Nz $txtTenantName.Text "")
 
@@ -559,11 +552,13 @@ function Set-TenantUiState {
 
     $badgeId = if ($isValid) { $tid } else { "(not set)" }
     $badgeName = if (-not [string]::IsNullOrWhiteSpace($tname)) { $tname } else { "(no tenant prefix)" }
-    $lblCurrentTenant.Text = "$badgeName | $badgeId"
+    $lblCurrentTenant.Text = "$badgeName  |  $badgeId"
 }
 
 function Set-Filter {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+    if (-not $PSCmdlet.ShouldProcess("UI", "Update filter visibility")) { return }
     $q = (Nz $txtSearch.Text "").Trim().ToLowerInvariant()
     foreach ($entry in $buttonMap) {
         $b = $entry.Button
@@ -573,7 +568,9 @@ function Set-Filter {
 }
 
 function Update-Column {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+    if (-not $PSCmdlet.ShouldProcess("UI", "Update column layout")) { return }
     # Auto-calc columns to fill width and reduce empty space
     # Tile width approx 230 incl margins; clamp 2..8
     $w = [Math]::Max(380, $svButtons.ActualWidth)
@@ -711,8 +708,8 @@ $btnReset.Add_Click({
 })
 
 $btnTenantIdHelp.Add_Click({
-    [System.Windows.MessageBox]::Show(
-@"
+    $null = [System.Windows.MessageBox]::Show(
+        @"
 To find your Directory (Tenant) ID:
 
 1) Go to https://entra.microsoft.com
@@ -725,12 +722,12 @@ xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
         "Where to Find Tenant ID",
         "OK",
         "Information"
-    ) | Out-Null
+    )
 })
 
 $btnTenantNameHelp.Add_Click({
-    [System.Windows.MessageBox]::Show(
-@"
+    $null = [System.Windows.MessageBox]::Show(
+        @"
 To find your SharePoint tenant prefix:
 
 1) Go to https://admin.microsoft.com
@@ -747,7 +744,7 @@ https://contoso-admin.sharepoint.com
         "Where to Find SharePoint Tenant Prefix",
         "OK",
         "Information"
-    ) | Out-Null
+    )
 })
 
 $lnkEntraOverview.Add_Click({ Open-Url "https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/Overview" | Out-Null })
