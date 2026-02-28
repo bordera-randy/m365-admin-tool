@@ -30,9 +30,9 @@ jobs:
         run: |
             $sourcePath = "${{ github.workspace }}\src\M365AdminTool.ps1"
             $tempPath = "${{ github.workspace }}\src\M365AdminTool.ps1.tmp"
-            GET-CONTENT $sourcePath -Raw |
+            get-content $sourcePath -Raw |
             Invoke-Formatter -Settings "${{ github.workspace }}\.github\PSScriptAnalyzerSettings.psd1" |
-            Set-Content $tempPath
+            Set-Content $tempPath -Encoding ASCII
             Remove-Item $sourcePath
             Rename-Item -Path $tempPath -NewName (Split-Path $sourcePath -Leaf)
 
