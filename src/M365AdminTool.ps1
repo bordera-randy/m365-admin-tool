@@ -29,7 +29,7 @@ Add-Type -AssemblyName System.Windows.Forms
 # ----------------------------
 # Persistence
 # ----------------------------
-$AppRoot    = Join-Path $env:APPDATA "PowerShell-Utility\M365Launcher"
+$AppRoot = Join-Path $env:APPDATA "PowerShell-Utility\M365Launcher"
 $ConfigPath = Join-Path $AppRoot "config.json"
 
 function Initialize-AppRoot {
@@ -43,8 +43,7 @@ function Get-Config {
     if (Test-Path $ConfigPath) {
         try {
             return (Get-Content $ConfigPath -Raw | ConvertFrom-Json)
-        }
-        catch {
+        } catch {
             return [pscustomobject]@{}
         }
     }
@@ -65,8 +64,7 @@ function Remove-Config {
             if ($PSCmdlet.ShouldProcess($ConfigPath, "Remove config file")) {
                 Remove-Item -Path $ConfigPath -Force -ErrorAction Stop | Out-Null
             }
-        }
-        catch {
+        } catch {
             Write-Verbose ("Remove-Config failed: {0}" -f $_.Exception.Message)
         }
     }
@@ -116,8 +114,7 @@ function Open-Url {
         $psi.UseShellExecute = $true
         [System.Diagnostics.Process]::Start($psi) | Out-Null
         $true
-    }
-    catch {
+    } catch {
         $false
     }
 }
@@ -160,46 +157,47 @@ function Get-AdminCenter {
                 param($state)
                 if ([string]::IsNullOrWhiteSpace($state.TenantName)) {
                     "https://admin.microsoft.com/sharepoint"
-                }
-                else {
+                } else {
                     Get-SharePointAdminUrl -TenantName $state.TenantName
                 }
             }
         }
         @{
-            Name = "OneDrive Admin"
-            Category = "Collaboration"
-            Color = "#00CC99"
-            Notes = "OneDrive settings"
-            Keywords = "onedrive sync sharing"
-            Icon = "E753" # Cloud
+            Name       = "OneDrive Admin"
+            Category   = "Collaboration"
+            Color      = "#00CC99"
+            Notes      = "OneDrive settings"
+            Keywords   = "onedrive sync sharing"
+            Icon       = "E753" # Cloud
             UrlBuilder = {
                 param($state)
                 if ([string]::IsNullOrWhiteSpace($state.TenantName)) {
                     "https://admin.microsoft.com/#/onedrive"
-                }
-                else {
+                } else {
                     Get-SharePointAdminUrl -TenantName $state.TenantName
                 }
+            }
+        }
             }
         }
 
         # Identity / Azure
         @{
-            Name = "Entra ID Admin Center"
-            Category = "Identity"
-            Color = "#9B59B6"
-            Notes = "Entra ID"
-            Keywords = "entra aad azuread identity conditional access"
-            Icon = "E72E" # Shield
+            Name       = "Entra ID Admin Center"
+            Category   = "Identity"
+            Color      = "#9B59B6"
+            Notes      = "Entra ID"
+            Keywords   = "entra aad azuread identity conditional access"
+            Icon       = "E72E" # Shield
             UrlBuilder = {
                 param($state)
                 if (Test-TenantId $state.TenantId) {
                     Get-EntraUrl -TenantId $state.TenantId
-                }
-                else {
+                } else {
                     "https://entra.microsoft.com"
                 }
+            }
+        }
             }
         }
         @{ Name = "Azure Portal"; Category = "Identity"; Color = "#2980B9"; Notes = "Azure"; StaticUrl = "https://portal.azure.com"; Keywords = "azure portal subscriptions"; Icon = "E7AD" } # AzureLogo (approx)
@@ -468,23 +466,23 @@ $reader = New-Object System.Xml.XmlNodeReader ([xml]$xaml)
 $window = [Windows.Markup.XamlReader]::Load($reader)
 
 # Named controls
-$txtTenantId       = $window.FindName("txtTenantId")
-$txtTenantName     = $window.FindName("txtTenantName")
-$txtSearch         = $window.FindName("txtSearch")
-$lblCurrentTenant  = $window.FindName("lblCurrentTenant")
-$lblTenantIdValid  = $window.FindName("lblTenantIdValid")
-$lblStatus         = $window.FindName("lblStatus")
-$btnCopyTenantId   = $window.FindName("btnCopyTenantId")
-$btnTenantIdHelp   = $window.FindName("btnTenantIdHelp")
+$txtTenantId = $window.FindName("txtTenantId")
+$txtTenantName = $window.FindName("txtTenantName")
+$txtSearch = $window.FindName("txtSearch")
+$lblCurrentTenant = $window.FindName("lblCurrentTenant")
+$lblTenantIdValid = $window.FindName("lblTenantIdValid")
+$lblStatus = $window.FindName("lblStatus")
+$btnCopyTenantId = $window.FindName("btnCopyTenantId")
+$btnTenantIdHelp = $window.FindName("btnTenantIdHelp")
 $btnTenantNameHelp = $window.FindName("btnTenantNameHelp")
-$btnSetTenant      = $window.FindName("btnSetTenant")
-$btnReset          = $window.FindName("btnReset")
-$btnExit           = $window.FindName("btnExit")
-$chkCloseToTray    = $window.FindName("chkCloseToTray")
-$lnkEntraOverview  = $window.FindName("lnkEntraOverview")
-$lnkDomains        = $window.FindName("lnkDomains")
-$svButtons         = $window.FindName("svButtons")
-$ugButtons         = $window.FindName("ugButtons")
+$btnSetTenant = $window.FindName("btnSetTenant")
+$btnReset = $window.FindName("btnReset")
+$btnExit = $window.FindName("btnExit")
+$chkCloseToTray = $window.FindName("chkCloseToTray")
+$lnkEntraOverview = $window.FindName("lnkEntraOverview")
+$lnkDomains = $window.FindName("lnkDomains")
+$svButtons = $window.FindName("svButtons")
+$ugButtons = $window.FindName("ugButtons")
 
 # Apply initial state
 $txtTenantId.Text   = (Nz $state.TenantId "")
@@ -558,7 +556,7 @@ function Invoke-Center {
     param([Parameter(Mandatory)]$center)
 
     $name = [string]$center.Name
-    $url  = Resolve-CenterUrl -center $center
+    $url = Resolve-CenterUrl -center $center
 
     if (-not $url) {
         $lblStatus.Text = "Status: No URL for: $name"
@@ -579,14 +577,18 @@ function Invoke-Center {
     if (-not (Open-Url -Url $url)) {
         $lblStatus.Text = "Status: Failed to open $name"
         [System.Windows.MessageBox]::Show("Could not open:`n$url", "Launch failed", "OK", "Error") | Out-Null
-    }
-    else {
+    } else {
         $lblStatus.Text = "Status: Opened $name"
     }
 }
-
 function Set-TenantUiState {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    if (-not $PSCmdlet.ShouldProcess("UI", "Update tenant state")) {
+        return
+    }
+
     $tid = (Nz $txtTenantId.Text "").Trim()
     $tname = Convert-TenantName (Nz $txtTenantName.Text "")
 
@@ -597,13 +599,11 @@ function Set-TenantUiState {
         $txtTenantId.Background = [System.Windows.Media.Brushes]::White
         $lblTenantIdValid.Text = "Not set"
         $lblTenantIdValid.Foreground = [System.Windows.Media.Brushes]::Gray
-    }
-    elseif ($isValid) {
+    } elseif ($isValid) {
         $txtTenantId.Background = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#EBFFEB")))
         $lblTenantIdValid.Text = "Valid ✅"
         $lblTenantIdValid.Foreground = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#19783C")))
-    }
-    else {
+    } else {
         $txtTenantId.Background = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#FFEBEB")))
         $lblTenantIdValid.Text = "Invalid ❌"
         $lblTenantIdValid.Foreground = (New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString("#A02828")))
@@ -613,9 +613,14 @@ function Set-TenantUiState {
     $badgeName = if (-not [string]::IsNullOrWhiteSpace($tname)) { $tname } else { "(no tenant prefix)" }
     $lblCurrentTenant.Text = "$badgeName | $badgeId"
 }
-
 function Set-Filter {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    if (-not $PSCmdlet.ShouldProcess("UI", "Apply tile filter")) {
+        return
+    }
+
     $q = (Nz $txtSearch.Text "").Trim().ToLowerInvariant()
     foreach ($entry in $buttonMap) {
         $b = $entry.Button
@@ -623,19 +628,27 @@ function Set-Filter {
         $b.Visibility = if ($q.Length -eq 0 -or $hay -like "*$q*") { "Visible" } else { "Collapsed" }
     }
 }
-
 function Update-Column {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    if (-not $PSCmdlet.ShouldProcess("UI", "Update tile column count")) {
+        return
+    }
+
     # Auto-calc columns to fill width and reduce empty space
     # Tile width approx 230 incl margins; clamp 2..8
     $w = [Math]::Max(380, $svButtons.ActualWidth)
     $cols = [int][Math]::Floor(($w - 20) / 240)
+
     if ($cols -lt 2) {
         $cols = 2
     }
+
     if ($cols -gt 8) {
         $cols = 8
     }
+
     $ugButtons.Columns = $cols
 }
 
@@ -690,8 +703,7 @@ function Build-Button {
         # Readable tooltip per tile
         $tipText = if ($center.ContainsKey("Notes") -and $center.Notes) {
             "{0}`n{1}" -f $center.Notes, (Resolve-CenterUrl -center $center)
-        }
-        else {
+        } else {
             (Resolve-CenterUrl -center $center)
         }
         $btn.ToolTip = (New-ReadableToolTip $tipText)
@@ -831,8 +843,7 @@ $window.Add_Closing({
         $notifyIcon.BalloonTipTitle = "M365 Launcher"
         $notifyIcon.BalloonTipText  = "Still running in the system tray."
         $notifyIcon.ShowBalloonTip(1200)
-    }
-    else {
+    } else {
         $notifyIcon.Visible = $false
     }
 })
